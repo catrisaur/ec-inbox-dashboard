@@ -6,6 +6,8 @@ from datetime import datetime
 # =========================================================
 # Application Header
 # =========================================================
+st.set_page_config(page_title="Email Operations Dashboard", layout="wide")
+
 st.title("📊 Email Operations & Automation Intelligence Dashboard")
 st.caption("Operational insights, automation potential, and volume trends for strategic decision-making.")
 
@@ -160,49 +162,100 @@ if uploaded_file:
     st.plotly_chart(fig_hourly, use_container_width=True)
 
     # =========================================================
-    # Category Insights
+    # CATEGORY INSIGHTS (Enhanced)
     # =========================================================
-    # Category Breakdown
-    st.subheader("Category Insights")
+    st.subheader("📂 Category Insights")
 
+    # Category Breakdown
     df_category = (
         filtered_df["Category"]
         .value_counts()
         .reset_index()
     )
     df_category.columns = ["Category", "Email Count"]
+    df_category["% of Total"] = (df_category["Email Count"] / df_category["Email Count"].sum() * 100).round(1)
 
     fig_category = px.bar(
         df_category,
         x="Email Count",
         y="Category",
         orientation="h",
-        title="Email Distribution by Category"
+        title="Email Volume by Category",
+        text="Email Count"
     )
+    fig_category.update_traces(textposition="outside")
     st.plotly_chart(fig_category, use_container_width=True)
 
+    # Category KPI Table
+    st.markdown("### 📊 Category Performance Overview")
+
+    df_cat_kpi = df_category.copy()
+    df_cat_kpi["Chatbot-Addressable"] = df_cat_kpi["Category"].apply(
+        lambda x: filtered_df[(filtered_df["Category"] == x) & (filtered_df["Chatbot_Addressable"] == "Yes")].shape[0]
+    )
+    df_cat_kpi["Automation Potential (%)"] = (
+        df_cat_kpi["Chatbot-Addressable"] / df_cat_kpi["Email Count"] * 100
+    ).round(1)
+    df_cat_kpi["Manual Hours (Est.)"] = df_cat_kpi["Email Count"] * 4 / 60
+    df_cat_kpi["Savings (Hrs)"] = (df_cat_kpi["Chatbot-Addressable"] * 4 - df_cat_kpi["Chatbot-Addressable"] * 0.1) / 60
+
+    st.dataframe(df_cat_kpi)
+
+    # Sub-Category Deep Dive
+    st.markdown("### 📁 Sub-Category Breakdown")
+
+    df_subcat = (
+        filtered_df.groupby(["Category", "Sub-Category"])
+        .size()
+        .reset_index(name="Email Count")
+    )
+
+    fig_subcat = px.treemap(
+        df_subcat,
+        path=["Category", "Sub-Category"],
+        values="Email Count",
+        title="Sub-Category Distribution"
+    )
+    st.plotly_chart(fig_subcat, use_container_width=True)
+
     # =========================================================
-    # Automation Potential
+    # AUTOMATION OPPORTUNITY (Enhanced)
     # =========================================================
-    # Chatbot Automation Pie
-    st.subheader("Automation Opportunity")
+    st.subheader("🤖 Automation Opportunity")
 
     df_chatbot = (
-        filtered_df['Chatbot_Addressable']
+        filtered_df["Chatbot_Addressable"]
         .value_counts()
         .reset_index()
     )
-
     df_chatbot.columns = ["Chatbot", "Count"]
 
     fig_chatbot = px.pie(
         df_chatbot,
         names="Chatbot",
         values="Count",
-        title="Chatbot vs Human Required",
+        title="Chatbot-Addressable vs Manual Handling",
     )
     st.plotly_chart(fig_chatbot, use_container_width=True)
 
+    # Automation Heatmap
+    st.markdown("### 🔥 Automation Priority Heatmap")
+
+    heatmap_data = df_cat_kpi.copy()
+    heatmap_data["Volume Tier"] = pd.qcut(heatmap_data["Email Count"], 2, labels=["Low", "High"])
+    heatmap_data["Automation Tier"] = pd.qcut(heatmap_data["Automation Potential (%)"], 2, labels=["Low", "High"])
+
+    fig_heatmap = px.scatter(
+        heatmap_data,
+        x="Automation Potential (%)",
+        y="Email Count",
+        size="Email Count",
+        color="Automation Tier",
+        text="Category",
+        title="Automation Impact vs Workload",
+    )
+    fig_heatmap.update_traces(textposition="top center")
+    st.plotly_chart(fig_heatmap, use_container_width=True)
 
     # =========================================================
     # Alerts & Risk Flags
@@ -210,33 +263,37 @@ if uploaded_file:
     st.subheader("⚠ Operational Alerts")
 
     peak_day = df_daily.loc[df_daily["Email Count"].idxmax()]
-    st.warning(f"Peak Day: **{peak_day['DateTimeReceived']}** with **{peak_day['Email Count']}** emails.")
+    st.warning(f"📌 **Peak Day:** {peak_day['DateTimeReceived']} with **{peak_day['Email Count']}** emails.")
 
     if "Data Protection" in filtered_df["Category"].values:
         st.error("🚨 Data Protection emails detected — immediate review recommended")
 
     # =========================================================
-    # Executive Summary
+    # Executive Summary (Enhanced)
     # =========================================================
     st.subheader("📌 Executive Summary")
 
     peak_month = df_monthly.loc[df_monthly["Email Count"].idxmax()]["Month"]
     top_category = df_category.iloc[0]["Category"]
 
-    st.write(
-        f"""
-        **Operational Insight Summary**
+    st.write(f"""
+### **Operational Insight Summary**
 
-        • **Highest-Volume Month:** {peak_month}  
-        • **Top Category:** {top_category}  
-        • **Automation Potential:** {pct_chatbot:.1f}% of emails are suitable for chatbot handling  
-        • **Productivity Impact:** Estimated **{time_saved_hours:.1f} hours** saved = **{fte_saved:.2f} FTEs**  
-        • **Operational Risk:** {'Data Protection activity detected' if 'Data Protection' in filtered_df['Category'].values else 'No critical risk categories detected'}
+- **Highest-Volume Month:** {peak_month}  
+- **Top Category:** {top_category}  
+- **Automation Potential:** {pct_chatbot:.1f}% of emails are suitable for chatbot handling  
+- **Productivity Impact:** Estimated **{time_saved_hours:.1f} hours saved** = **{fte_saved:.2f} FTEs**  
+- **Risk Signals:** {"Data Protection activity detected" if "Data Protection" in filtered_df["Category"].values else "No critical risk categories detected"}  
+- **Operational Load Concentration:** {top_category} represents **{df_category.iloc[0]['% of Total']:.1f}%** of all email traffic  
 
-        These insights indicate clear opportunities to streamline operations,
-        improve service levels, and reduce manual workload through targeted automation.
-        """
-    )
+### **Strategic Recommendations**
+- **Automate High-Volume, High-Suitability Paths** (fastest ROI).  
+- **Re-engineer High-Volume, Low-Suitability Categories** to reduce repeated queries.  
+- **Maintain Manual Review** for low-volume but sensitive categories such as Whistleblowing or Data Protection.  
+
+These insights highlight clear opportunities to improve operational capacity, reduce SLA delays, 
+and enhance compliance assurance through targeted automation.
+""")
 
 else:
     st.info("Upload a dataset to enable the dashboard.")
