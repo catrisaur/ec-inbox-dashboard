@@ -162,34 +162,24 @@ if uploaded_file:
     # =========================================================
     # Category Insights
     # =========================================================
-    st.subheader("📂 Category & Sub-Category Insights")
+    # Category Breakdown
+    st.subheader("Category Insights")
 
     df_category = (
-        filtered_df["Category"].value_counts().reset_index().rename(
-            columns={"index": "Category", "Category": "Email Count"}
-        )
+        filtered_df["Category"]
+        .value_counts()
+        .reset_index()
     )
+    df_category.columns = ["Category", "Email Count"]
+
     fig_category = px.bar(
         df_category,
         x="Email Count",
         y="Category",
         orientation="h",
-        title="Emails by Category",
+        title="Email Distribution by Category"
     )
     st.plotly_chart(fig_category, use_container_width=True)
-
-    df_subcat = (
-        filtered_df.groupby("Sub-Category").size().reset_index(name="Email Count")
-    )
-
-    fig_subcat = px.bar(
-        df_subcat,
-        x="Email Count",
-        y="Sub-Category",
-        orientation="h",
-        title="Sub-Category Breakdown",
-    )
-    st.plotly_chart(fig_subcat, use_container_width=True)
 
     # =========================================================
     # Automation Potential
