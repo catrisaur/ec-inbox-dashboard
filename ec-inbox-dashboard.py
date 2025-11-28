@@ -184,21 +184,25 @@ if uploaded_file:
     # =========================================================
     # Automation Potential
     # =========================================================
-    st.subheader("🤖 Automation Opportunity")
+    # Chatbot Automation Pie
+    st.subheader("Automation Opportunity")
 
     df_chatbot = (
-        filtered_df["Chatbot_Addressable"].value_counts()
+        filtered_df['Chatbot_Addressable']
+        .value_counts()
         .reset_index()
-        .rename(columns={"index": "Chatbot", "Chatbot_Addressable": "Count"})
     )
+
+    df_chatbot.columns = ["Chatbot", "Count"]
 
     fig_chatbot = px.pie(
         df_chatbot,
         names="Chatbot",
         values="Count",
-        title="Automation vs Manual Handling",
+        title="Chatbot vs Human Required",
     )
     st.plotly_chart(fig_chatbot, use_container_width=True)
+
 
     # =========================================================
     # Alerts & Risk Flags
