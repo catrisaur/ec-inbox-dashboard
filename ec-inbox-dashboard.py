@@ -1,62 +1,86 @@
 import streamlit as st
 import pandas as pd
+import numpy as np
 import plotly.express as px
 from datetime import datetime
 
 # =========================================================
-# Application Header
+# PAGE CONFIGURATION
 # =========================================================
-st.set_page_config(page_title="Email Operations Dashboard", layout="wide")
+st.set_page_config(
+    page_title="Email Operations & Automation Intelligence Dashboard",
+    layout="wide",
+    initial_sidebar_state="expanded",
+)
 
 st.title("📊 Email Operations & Automation Intelligence Dashboard")
-st.caption("Operational insights, automation potential, and volume trends for strategic decision-making.")
+st.caption(
+    "Comprehensive operational intelligence for email volumes, workload patterns, "
+    "automation suitability, and efficiency forecasting."
+)
 
 # =========================================================
-# File Upload
+# FILE UPLOAD
 # =========================================================
 uploaded_file = st.file_uploader(
     "Upload your dataset (Excel or CSV)", type=["xlsx", "xls", "csv"]
 )
 
+# Cache loading for performance
+@st.cache_data
+def load_file(file):
+    if file.name.endswith(".csv"):
+        return pd.read_csv(file)
+    else:
+        return pd.read_excel(file)
+
 if uploaded_file:
 
     # -----------------------------------------------------
-    # Load File
+    # Load Data
     # -----------------------------------------------------
     try:
-        if uploaded_file.name.endswith(".csv"):
-            df = pd.read_csv(uploaded_file)
-        else:
-            df = pd.read_excel(uploaded_file)
+        df = load_file(uploaded_file)
         st.success("✅ Data loaded successfully")
     except Exception as e:
         st.error(f"Error loading file: {e}")
         st.stop()
 
     # -----------------------------------------------------
-    # Validate Required Columns
+    # Validate Required Schema
     # -----------------------------------------------------
     required_cols = ["DateTimeReceived", "Category", "Sub-Category", "Chatbot_Addressable"]
     missing_cols = [col for col in required_cols if col not in df.columns]
+
+    with st.expander("🔍 View Detected Columns"):
+        st.write(df.columns.tolist())
 
     if missing_cols:
         st.error(f"❌ Missing required columns: {missing_cols}")
         st.stop()
 
     # -----------------------------------------------------
-    # Clean & Prepare Data
+    # CLEAN & FORMAT
     # -----------------------------------------------------
     df["DateTimeReceived"] = pd.to_datetime(df["DateTimeReceived"], errors="coerce")
     df.dropna(subset=["DateTimeReceived"], inplace=True)
+
     df.sort_values("DateTimeReceived", inplace=True)
+    df["Date"] = df["DateTimeReceived"].dt.date
+    df["Month"] = df["DateTimeReceived"].dt.to_period("M").astype(str)
+    df["Hour"] = df["DateTimeReceived"].dt.hour
+    df["Weekday"] = df["DateTimeReceived"].dt.day_name()
 
     # =========================================================
-    # Sidebar Filters
+    # SIDEBAR FILTERS
     # =========================================================
     st.sidebar.header("🔎 Filters")
 
     category_list = sorted(df["Category"].unique())
-    selected_categories = st.sidebar.multiselect("Category", category_list)
+    selected_categories = st.sidebar.multiselect("Filter by Category", category_list)
+
+    subcat_list = sorted(df["Sub-Category"].unique())
+    selected_subcats = st.sidebar.multiselect("Filter by Sub-Category", subcat_list)
 
     date_min, date_max = df["DateTimeReceived"].min(), df["DateTimeReceived"].max()
     date_range = st.sidebar.date_input("Date Range", [date_min, date_max])
@@ -69,230 +93,205 @@ if uploaded_file:
     if selected_categories:
         filtered_df = filtered_df[filtered_df["Category"].isin(selected_categories)]
 
+    if selected_subcats:
+        filtered_df = filtered_df[filtered_df["Sub-Category"].isin(selected_subcats)]
+
     if filtered_df.empty:
-        st.warning("No data available for the selected filters.")
+        st.warning("No data matches your selected filters.")
         st.stop()
 
     # =========================================================
-    # KPI CALCULATIONS
+    # KPI CALCULATIONS (ENHANCED)
     # =========================================================
     today = pd.Timestamp.today()
 
-    total_ytd = len(filtered_df)
-    total_mtd = filtered_df[filtered_df["DateTimeReceived"].dt.month == today.month].shape[0]
-    total_wtd = filtered_df[filtered_df["DateTimeReceived"].dt.isocalendar().week == today.isocalendar().week].shape[0]
-    total_today = filtered_df[filtered_df["DateTimeReceived"].dt.date == today.date()].shape[0]
+    total_volume = len(filtered_df)
+    ytd_volume = len(df[df["DateTimeReceived"].dt.year == today.year])
+    mtd_volume = len(df[df["DateTimeReceived"].dt.month == today.month])
+    wtd_volume = len(df[df["DateTimeReceived"].dt.isocalendar().week == today.isocalendar().week])
+    today_count = len(df[df["DateTimeReceived"].dt.date == today.date()])
 
     chatbot_count = filtered_df[filtered_df["Chatbot_Addressable"] == "Yes"].shape[0]
-    pct_chatbot = (chatbot_count / len(filtered_df)) * 100
+    pct_chatbot = chatbot_count / total_volume * 100
 
-    # Operational efficiency assumptions
-    manual_time_min = len(filtered_df) * 4           # 4 min per manual handling
-    chatbot_time_min = chatbot_count * 0.1           # near-zero handling time
-    time_saved_hours = (manual_time_min - chatbot_time_min) / 60
-    fte_saved = time_saved_hours / 160               # 160 hours per FTE month
+    # Efficiency assumptions
+    minutes_per_manual = 4
+    minutes_chatbot = 0.1
+    manual_min_total = total_volume * minutes_per_manual
+    chatbot_min_total = chatbot_count * minutes_chatbot
+    hours_saved = (manual_min_total - chatbot_min_total) / 60
+    fte_saved = hours_saved / 160
 
-    # =========================================================
-    # KPI Dashboard (Executive View)
-    # =========================================================
-    st.subheader("📈 Key Operational Metrics")
-
-    col1, col2, col3, col4 = st.columns(4)
-    col1.metric("YTD Volume", total_ytd)
-    col2.metric("MTD Volume", total_mtd)
-    col3.metric("WTD Volume", total_wtd)
-    col4.metric("Today", total_today)
-
-    col5, col6, col7 = st.columns(3)
-    col5.metric("Automation-Addressable", f"{pct_chatbot:.1f}%")
-    col6.metric("Hours Saved (Est.)", f"{time_saved_hours:.1f}")
-    col7.metric("FTE Savings (Est.)", f"{fte_saved:.2f}")
+    # Workload Pattern Insights
+    peak_hour = filtered_df["Hour"].value_counts().idxmax()
+    peak_day = filtered_df["Date"].value_counts().idxmax()
+    busiest_weekday = filtered_df["Weekday"].value_counts().idxmax()
 
     # =========================================================
-    # Trend Analysis (Volumes)
+    # KPI DASHBOARD
     # =========================================================
-    st.subheader("📉 Volume Trends")
+    st.subheader("📈 Executive KPIs")
 
-    # Monthly
-    df_monthly = (
-        filtered_df.groupby(filtered_df["DateTimeReceived"].dt.to_period("M"))
-        .size()
-        .reset_index(name="Email Count")
-    )
-    df_monthly["Month"] = df_monthly["DateTimeReceived"].astype(str)
+    k1, k2, k3, k4 = st.columns(4)
+    k1.metric("Total Volume (Filtered)", total_volume)
+    k2.metric("Automation-Addressable %", f"{pct_chatbot:.1f}%")
+    k3.metric("Estimated Hours Saved", f"{hours_saved:.1f}")
+    k4.metric("Estimated FTE Savings", f"{fte_saved:.2f}")
 
-    fig_monthly = px.line(
-        df_monthly,
-        x="Month",
-        y="Email Count",
-        title="Monthly Email Volume",
-        markers=True,
-    )
-    st.plotly_chart(fig_monthly, use_container_width=True)
+    k5, k6, k7 = st.columns(3)
+    k5.metric("Peak Hour", f"{peak_hour}:00")
+    k6.metric("Peak Day", str(peak_day))
+    k7.metric("Busiest Weekday", busiest_weekday)
 
-    # Daily
-    df_daily = (
-        filtered_df.groupby(filtered_df["DateTimeReceived"].dt.date)
-        .size()
-        .reset_index(name="Email Count")
-    )
+    # =========================================================
+    # TREND ANALYSIS
+    # =========================================================
+    st.subheader("📉 Volume Trends & Workload Distribution")
 
-    fig_daily = px.line(
-        df_daily,
-        x="DateTimeReceived",
-        y="Email Count",
-        title="Daily Email Volume",
-        markers=True,
-    )
+    # Monthly Trend
+    monthly = filtered_df.groupby("Month").size().reset_index(name="Count")
+    fig_month = px.line(monthly, x="Month", y="Count", markers=True, title="Monthly Email Volume")
+    st.plotly_chart(fig_month, use_container_width=True)
+
+    # Daily Trend
+    daily = filtered_df.groupby("Date").size().reset_index(name="Count")
+    fig_daily = px.line(daily, x="Date", y="Count", markers=True, title="Daily Email Volume")
     st.plotly_chart(fig_daily, use_container_width=True)
 
-    # Hourly
-    df_hourly = (
-        filtered_df.groupby(filtered_df["DateTimeReceived"].dt.hour)
-        .size()
-        .reset_index(name="Email Count")
-    )
+    # Hourly Distribution
+    hourly = filtered_df.groupby("Hour").size().reset_index(name="Count")
+    fig_hour = px.bar(hourly, x="Hour", y="Count", title="Hourly Distribution")
+    st.plotly_chart(fig_hour, use_container_width=True)
 
-    fig_hourly = px.bar(
-        df_hourly,
-        x="DateTimeReceived",
-        y="Email Count",
-        title="Hourly Distribution",
+    # Weekday Heatmap
+    weekday_hour = filtered_df.groupby(["Weekday", "Hour"]).size().reset_index(name="Count")
+    fig_heat = px.density_heatmap(
+        weekday_hour,
+        x="Hour", y="Weekday", z="Count",
+        title="Workload Heatmap by Hour & Weekday",
+        histfunc="avg", color_continuous_scale="Viridis"
     )
-    st.plotly_chart(fig_hourly, use_container_width=True)
+    st.plotly_chart(fig_heat, use_container_width=True)
 
     # =========================================================
-    # CATEGORY INSIGHTS (Enhanced)
+    # CATEGORY INSIGHTS (ADVANCED)
     # =========================================================
-    st.subheader("📂 Category Insights")
+    st.subheader("📂 Category & Sub-Category Insights")
 
-    # Category Breakdown
-    df_category = (
+    category_counts = (
         filtered_df["Category"]
         .value_counts()
         .reset_index()
+        .rename(columns={"index": "Category", "Category": "Count"})
     )
-    df_category.columns = ["Category", "Email Count"]
-    df_category["% of Total"] = (df_category["Email Count"] / df_category["Email Count"].sum() * 100).round(1)
+    category_counts["% of Total"] = category_counts["Count"] / total_volume * 100
 
-    fig_category = px.bar(
-        df_category,
-        x="Email Count",
-        y="Category",
-        orientation="h",
-        title="Email Volume by Category",
-        text="Email Count"
+    fig_cat = px.bar(
+        category_counts,
+        x="Count", y="Category", orientation="h",
+        title="Email Volume by Category", text="Count"
     )
-    fig_category.update_traces(textposition="outside")
-    st.plotly_chart(fig_category, use_container_width=True)
+    st.plotly_chart(fig_cat, use_container_width=True)
 
-    # Category KPI Table
-    st.markdown("### 📊 Category Performance Overview")
-
-    df_cat_kpi = df_category.copy()
-    df_cat_kpi["Chatbot-Addressable"] = df_cat_kpi["Category"].apply(
-        lambda x: filtered_df[(filtered_df["Category"] == x) & (filtered_df["Chatbot_Addressable"] == "Yes")].shape[0]
-    )
-    df_cat_kpi["Automation Potential (%)"] = (
-        df_cat_kpi["Chatbot-Addressable"] / df_cat_kpi["Email Count"] * 100
-    ).round(1)
-    df_cat_kpi["Manual Hours (Est.)"] = df_cat_kpi["Email Count"] * 4 / 60
-    df_cat_kpi["Savings (Hrs)"] = (df_cat_kpi["Chatbot-Addressable"] * 4 - df_cat_kpi["Chatbot-Addressable"] * 0.1) / 60
-
-    st.dataframe(df_cat_kpi)
-
-    # Sub-Category Deep Dive
-    st.markdown("### 📁 Sub-Category Breakdown")
-
-    df_subcat = (
+    # Subcategory Breakdown
+    subcat = (
         filtered_df.groupby(["Category", "Sub-Category"])
         .size()
-        .reset_index(name="Email Count")
+        .reset_index(name="Count")
     )
-
     fig_subcat = px.treemap(
-        df_subcat,
+        subcat,
         path=["Category", "Sub-Category"],
-        values="Email Count",
-        title="Sub-Category Distribution"
+        values="Count",
+        title="Sub-Category Structure & Volume"
     )
     st.plotly_chart(fig_subcat, use_container_width=True)
 
     # =========================================================
-    # AUTOMATION OPPORTUNITY (Enhanced)
+    # AUTOMATION OPPORTUNITY (ADVANCED)
     # =========================================================
-    st.subheader("🤖 Automation Opportunity")
+    st.subheader("🤖 Automation Opportunity Analysis")
 
-    df_chatbot = (
-        filtered_df["Chatbot_Addressable"]
-        .value_counts()
-        .reset_index()
+    auto_summary = (
+        filtered_df.groupby("Category")
+        .agg(
+            Total=("Category", "count"),
+            Auto=("Chatbot_Addressable", lambda s: (s == "Yes").sum())
+        )
     )
-    df_chatbot.columns = ["Chatbot", "Count"]
+    auto_summary["Auto %"] = (auto_summary["Auto"] / auto_summary["Total"] * 100).round(1)
+    auto_summary["Manual Hrs"] = auto_summary["Total"] * 4 / 60
+    auto_summary["Potential Savings (hrs)"] = (auto_summary["Auto"] * 4 - auto_summary["Auto"] * 0.1) / 60
 
-    fig_chatbot = px.pie(
-        df_chatbot,
-        names="Chatbot",
-        values="Count",
-        title="Chatbot-Addressable vs Manual Handling",
+    st.dataframe(auto_summary)
+
+    fig_auto = px.scatter(
+        auto_summary,
+        x="Auto %",
+        y="Total",
+        size="Total",
+        color="Auto %",
+        text=auto_summary.index,
+        title="Automation Potential vs Workload Impact"
     )
-    st.plotly_chart(fig_chatbot, use_container_width=True)
-
-    # Automation Heatmap
-    st.markdown("### 🔥 Automation Priority Heatmap")
-
-    heatmap_data = df_cat_kpi.copy()
-    heatmap_data["Volume Tier"] = pd.qcut(heatmap_data["Email Count"], 2, labels=["Low", "High"])
-    heatmap_data["Automation Tier"] = pd.qcut(heatmap_data["Automation Potential (%)"], 2, labels=["Low", "High"])
-
-    fig_heatmap = px.scatter(
-        heatmap_data,
-        x="Automation Potential (%)",
-        y="Email Count",
-        size="Email Count",
-        color="Automation Tier",
-        text="Category",
-        title="Automation Impact vs Workload",
-    )
-    fig_heatmap.update_traces(textposition="top center")
-    st.plotly_chart(fig_heatmap, use_container_width=True)
+    fig_auto.update_traces(textposition="top center")
+    st.plotly_chart(fig_auto, use_container_width=True)
 
     # =========================================================
-    # Alerts & Risk Flags
+    # RISK & ANOMALY FLAGS
     # =========================================================
-    st.subheader("⚠ Operational Alerts")
+    st.subheader("⚠ Operational Alerts & Risk Flags")
 
-    peak_day = df_daily.loc[df_daily["Email Count"].idxmax()]
-    st.warning(f"📌 **Peak Day:** {peak_day['DateTimeReceived']} with **{peak_day['Email Count']}** emails.")
-
+    # Example rule: Data Protection = sensitive
     if "Data Protection" in filtered_df["Category"].values:
-        st.error("🚨 Data Protection emails detected — immediate review recommended")
+        st.error("🚨 Data Protection emails detected — human review recommended")
+
+    # Peak load detection (simple anomaly rule)
+    threshold = daily["Count"].mean() + 2 * daily["Count"].std()
+    anomalies = daily[daily["Count"] > threshold]
+
+    if not anomalies.empty:
+        st.warning("📈 High-volume anomaly detected (above 2σ threshold).")
+        st.dataframe(anomalies)
 
     # =========================================================
-    # Executive Summary (Enhanced)
+    # EXECUTIVE SUMMARY
     # =========================================================
-    st.subheader("📌 Executive Summary")
+    st.subheader("📌 Executive Summary & Recommendations")
 
-    peak_month = df_monthly.loc[df_monthly["Email Count"].idxmax()]["Month"]
-    top_category = df_category.iloc[0]["Category"]
+    peak_month = monthly.loc[monthly["Count"].idxmax()]["Month"]
+    top_category = category_counts.iloc[0]["Category"]
 
-    st.write(f"""
+    st.markdown(f"""
 ### **Operational Insight Summary**
 
 - **Highest-Volume Month:** {peak_month}  
 - **Top Category:** {top_category}  
-- **Automation Potential:** {pct_chatbot:.1f}% of emails are suitable for chatbot handling  
-- **Productivity Impact:** Estimated **{time_saved_hours:.1f} hours saved** = **{fte_saved:.2f} FTEs**  
-- **Risk Signals:** {"Data Protection activity detected" if "Data Protection" in filtered_df["Category"].values else "No critical risk categories detected"}  
-- **Operational Load Concentration:** {top_category} represents **{df_category.iloc[0]['% of Total']:.1f}%** of all email traffic  
+- **Automation Potential:** {pct_chatbot:.1f}%  
+- **Estimated Hours Saved:** {hours_saved:.1f} hrs  
+- **FTE Equivalence:** {fte_saved:.2f} FTEs  
+- **Busiest Operating Window:** {busiest_weekday}, {peak_hour}:00  
+- **Peak Day Volume:** {peak_day}  
 
 ### **Strategic Recommendations**
-- **Automate High-Volume, High-Suitability Paths** (fastest ROI).  
-- **Re-engineer High-Volume, Low-Suitability Categories** to reduce repeated queries.  
-- **Maintain Manual Review** for low-volume but sensitive categories such as Whistleblowing or Data Protection.  
+1. **Prioritize Automation for High-Volume & High-Suitability Categories**  
+   Rapid benefit with minimal operational risk.
 
-These insights highlight clear opportunities to improve operational capacity, reduce SLA delays, 
-and enhance compliance assurance through targeted automation.
+2. **Re-engineer High-Volume, Low-Automation Categories**  
+   Identify top drivers of repeat contact.
+
+3. **Align Staffing With Workload Peaks**  
+   Concentration around **{peak_hour}:00** and **{busiest_weekday}**.
+
+4. **Monitor Sensitive Categories**  
+   E.g., “Data Protection” should remain human-reviewed.
+
+5. **Use Sub-Category Patterns to Inform Enterprise Chatbot Training**  
+   Highest-granularity payloads deliver big training ROI.
+
+---
+
+These insights highlight opportunities for **efficiency uplift**, **SLA improvement**, and **automation-driven cost optimization** across the entire email workflow value chain.
 """)
 
 else:
