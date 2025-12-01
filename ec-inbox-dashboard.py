@@ -4,31 +4,45 @@ import plotly.express as px
 from datetime import datetime
 
 # =========================================================
-# COLOR THEME
+# COLOR THEME — DARKER, MORE VARIED
 # =========================================================
-PRIMARY_RED = "#EE2536"
-WHITE = "#FFFFFF"
-LIGHT_GREY = "#F8F8F8"
-DARK_GREY = "#333333"
+PRIMARY_RED = "#EE2536"      # Accent red
+DARK_RED = "#B22234"         # Darker red for highlights
+WHITE = "#FFFFFF"             # Text / panels
+LIGHT_GREY = "#F8F8F8"       # App background
+DARK_GREY = "#1E1E1E"        # Dark background for sidebar / charts
+MID_GREY = "#4A4A4A"         # Secondary text / subtle backgrounds
 
 # Inject custom CSS theme
 st.markdown(
     f"""
     <style>
+        /* App background */
         body {{
             background-color: {LIGHT_GREY};
+            color: {DARK_GREY};
         }}
         .stApp {{
             background-color: {LIGHT_GREY};
         }}
+
+        /* Titles and headers */
         h1, h2, h3, h4, h5 {{
             color: {DARK_GREY} !important;
             font-weight: 700;
         }}
+
+        /* Sidebar */
         section[data-testid="stSidebar"] > div {{
-            background-color: {WHITE};
+            background-color: {MID_GREY};
+            color: {WHITE};
             border-right: 3px solid {PRIMARY_RED};
         }}
+        .css-1d391kg {{
+            background-color: {MID_GREY} !important;
+        }}
+
+        /* KPI Metrics */
         div[data-testid="metric-container"] {{
             background-color: {WHITE};
             padding: 20px;
@@ -36,6 +50,8 @@ st.markdown(
             border-left: 8px solid {PRIMARY_RED};
             box-shadow: 0 2px 6px rgba(0,0,0,0.08);
         }}
+
+        /* Buttons */
         .stButton>button {{
             background-color: {PRIMARY_RED} !important;
             color: white !important;
@@ -44,6 +60,12 @@ st.markdown(
         }}
         .stButton>button:hover {{
             opacity: 0.9;
+        }}
+
+        /* Inputs & widgets */
+        .stTextInput>div>input, .stSelectbox>div>div {{
+            background-color: {WHITE};
+            color: {DARK_GREY};
         }}
     </style>
     """,
