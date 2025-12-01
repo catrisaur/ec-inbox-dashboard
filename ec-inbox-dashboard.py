@@ -11,29 +11,26 @@ st.title("📊 E&C Inbox Dashboard")
 st.caption("Operational intelligence for email volumes, automation potential, and efficiency gains.")
 
 # =========================================================
-# FILE UPLOAD
+# FILE UPLOAD (DEFAULT)
 # =========================================================
-uploaded_file = st.file_uploader("Upload your dataset (Excel or CSV)", type=["xlsx", "xls", "csv"])
+DEFAULT_FILE = "ECInbox_Analysis_20251201.xlsx"  # <-- your default dataset path
 
 @st.cache_data
-def load_file(file):
-    if file.name.endswith(".csv"):
-        return pd.read_csv(file)
-    else:
-        return pd.read_excel(file)
+def load_data(file_path):
+    df = pd.read_excel(file_path)
+    return df
 
-if uploaded_file:
-    df = load_file(uploaded_file)
-    st.success("✅ Data loaded successfully")
+df = load_data(DEFAULT_FILE)
+st.success(f"✅ Dataset loaded: {DEFAULT_FILE}")
 
-    # -----------------------
-    # Validate schema
-    # -----------------------
-    required_cols = ["DateTimeReceived", "Category", "Sub-Category", "Sub-Sub-Category", "Chatbot_Addressable", "Body.TextBody"]
-    missing = [c for c in required_cols if c not in df.columns]
-    if missing:
-        st.error(f"❌ Missing required columns: {missing}")
-        st.stop()
+# -----------------------
+# Validate schema
+# -----------------------
+required_cols = ["DateTimeReceived", "Category", "Sub-Category", "Sub-Sub-Category", "Chatbot_Addressable", "Body.TextBody"]
+missing = [c for c in required_cols if c not in df.columns]
+if missing:
+    st.error(f"❌ Missing required columns: {missing}")
+    st.stop()
 
     # =========================================================
     # CLEAN DATETIME
