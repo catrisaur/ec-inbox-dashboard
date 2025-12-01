@@ -13,7 +13,7 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-st.title("E&C Inbox Dashboard")
+st.title("📊 E&C Inbox Dashboard")
 st.caption(
     "Comprehensive operational intelligence for email volumes, workload patterns, "
     "automation suitability, and efficiency forecasting."
