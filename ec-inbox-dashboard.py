@@ -24,7 +24,7 @@ if uploaded_file:
     st.success("✅ Data loaded successfully")
 
     # Validate schema
-    required_cols = ["DateTimeReceived", "Category", "Sub-Category", "Sub-Sub-Category", "Chatbot_Addressable"]
+    required_cols = ["DateTimeReceived", "Category", "Sub-Category", "Sub-Sub-Category", "Chatbot_Addressable", "Body.TextBody"]
     missing = [c for c in required_cols if c not in df.columns]
     if missing:
         st.error(f"❌ Missing required columns: {missing}")
@@ -105,7 +105,8 @@ if uploaded_file:
     # Hourly Heatmap
     weekday_hour = filtered_df.groupby(["Weekday", "Hour"], as_index=False).size().rename(columns={"size": "Count"})
     fig_heat = px.density_heatmap(
-        weekday_hour, x="Hour", y="Weekday", z="Count"
+        weekday_hour, x="Hour", y="Weekday", z="Count", title="Email Volume Heatmap by Hour and Weekday",
+        color_continuous_scale="reds"
     )
     st.plotly_chart(fig_heat, use_container_width=True)
 
@@ -116,28 +117,51 @@ if uploaded_file:
     category_counts = filtered_df.groupby("Category", as_index=False).size().rename(columns={"size": "Count"})
     fig_cat = px.bar(
         category_counts, x="Count", y="Category", orientation="h",
-        title="Volume by Category"
+        title="Volume by Category",
+        color="Count", color_continuous_scale=px.colors.sequential.OrRd
     )
     st.plotly_chart(fig_cat, use_container_width=True)
 
     # =========================================================
-    # EXECUTIVE SUMMARY
+    # BREAKDOWN PER CATEGORY WITH SAMPLE EMAILS
     # =========================================================
-    st.subheader("📌 Strategic Recommendations")
+    st.subheader("📝 Category Breakdown & Sample Emails")
+
+    for cat in filtered_df["Category"].unique():
+        cat_df = filtered_df[filtered_df["Category"] == cat]
+        total_cat = len(cat_df)
+        chatbot_cat = cat_df[cat_df["Chatbot_Addressable"] == "Yes"].shape[0]
+        pct_chatbot_cat = (chatbot_cat / total_cat * 100) if total_cat > 0 else 0
+        peak_hour_cat = cat_df.groupby("Hour").size().idxmax()
+        peak_weekday_cat = cat_df.groupby("Weekday").size().idxmax()
+
+        with st.expander(f"{cat} — {total_cat} emails"):
+            st.markdown(f"**Automation:** {pct_chatbot_cat:.1f}% of emails are automated")
+            st.markdown(f"**Peak Hour:** {peak_hour_cat}:00")
+            st.markdown(f"**Peak Weekday:** {peak_weekday_cat}")
+            st.markdown("**Sample Emails:**")
+            for sample in cat_df["Body.TextBody"].head(5):
+                st.markdown(f"- {sample[:200]}{'...' if len(sample) > 200 else ''}")  # Show first 200 chars
+
+    # =========================================================
+    # EXECUTIVE SUMMARY & STRATEGIC INSIGHTS
+    # =========================================================
+    st.subheader("📌 Strategic Recommendations & Insights")
+
+    # Top category & peak month
     top_category = category_counts.iloc[0]['Category'] if not category_counts.empty else "N/A"
     peak_month = monthly.loc[monthly['Count'].idxmax()]['Month'] if len(monthly) else "N/A"
 
     st.markdown(f"""
-    - **Automation Potential:** {pct_chatbot:.1f}%  
-    - **Estimated Hours Saved:** {hours_saved:.1f} hrs  
-    - **Top Category:** {top_category}  
-    - **Peak Month:** {peak_month}  
+**Top Category:** {top_category}  
+**Peak Month:** {peak_month}  
 
-    **Recommendations:**
-    1. Prioritize automation for high-volume categories.
-    2. Align staffing with peak workload hours.
-    3. Monitor sensitive categories for compliance risk.
-    """)
+**Recommendations:**  
+1. Prioritize automation for high-volume categories.  
+2. Align staffing with peak workload hours.  
+3. Monitor sensitive categories for compliance risk.  
+4. Review sample emails per category to identify patterns for potential process improvements.
+""")
 
 else:
     st.info("Upload a dataset to enable the dashboard.")
