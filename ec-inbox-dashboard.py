@@ -155,7 +155,7 @@ if uploaded_file:
     )
 
     # Optional: Expand sample emails per row
-    st.info("🔹 Sample emails truncated to 150 characters. Click a row for full email in future enhancements.")
+    st.info("🔹 Sample emails truncated to 150 characters.")
 
 
     # =========================================================
