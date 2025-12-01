@@ -44,8 +44,8 @@ if uploaded_file:
     # SIDEBAR FILTERS
     # =========================================================
     st.sidebar.header("🔎 Filters")
-    selected_categories = st.sidebar.multiselect("Filter by Category", sorted(df["Category"].unique()))
-    selected_subcats = st.sidebar.multiselect("Filter by Sub-Category", sorted(df["Sub-Category"].unique()))
+    selected_categories = st.sidebar.multiselect("Filter by Category", sorted(df["category"].unique()))
+    selected_subcats = st.sidebar.multiselect("Filter by Sub-Category", sorted(df["sub_category"].unique()))
     date_range = st.sidebar.date_input("Date Range", [df["DateTimeReceived"].min(), df["DateTimeReceived"].max()])
 
     filtered_df = df[
@@ -53,9 +53,9 @@ if uploaded_file:
         (df["DateTimeReceived"] <= pd.to_datetime(date_range[1]))
     ]
     if selected_categories:
-        filtered_df = filtered_df[filtered_df["Category"].isin(selected_categories)]
+        filtered_df = filtered_df[filtered_df["category"].isin(selected_categories)]
     if selected_subcats:
-        filtered_df = filtered_df[filtered_df["Sub-Category"].isin(selected_subcats)]
+        filtered_df = filtered_df[filtered_df["sub_category"].isin(selected_subcats)]
 
     if filtered_df.empty:
         st.warning("No data matches your filters.")
@@ -94,8 +94,8 @@ if uploaded_file:
     # CATEGORY INSIGHTS
     # =========================================================
     st.subheader("📂 Category Insights")
-    category_counts = filtered_df.groupby("Category", as_index=False).size().rename(columns={"size": "Count"})
-    fig_cat = px.bar(category_counts, x="Count", y="Category", orientation="h", title="Volume by Category")
+    category_counts = filtered_df.groupby("category", as_index=False).size().rename(columns={"size": "Count"})
+    fig_cat = px.bar(category_counts, x="Count", y="category", orientation="h", title="Volume by Category")
     st.plotly_chart(fig_cat, use_container_width=True)
 
     # =========================================================
@@ -105,7 +105,7 @@ if uploaded_file:
     st.markdown(f"""
     - **Automation Potential:** {pct_chatbot:.1f}%  
     - **Estimated Hours Saved:** {hours_saved:.1f} hrs  
-    - **Top Category:** {category_counts.iloc[0]['Category']}  
+    - **Top Category:** {category_counts.iloc[0]['category']}  
     - **Peak Month:** {monthly.loc[monthly['Count'].idxmax()]['Month']}  
 
     **Recommendations:**
