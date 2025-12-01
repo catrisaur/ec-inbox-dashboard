@@ -77,17 +77,13 @@ if filtered_df.empty:
 filtered_df["Chatbot_Addressable"] = filtered_df["Chatbot_Addressable"].astype(str).str.lower().replace({"yes": True, "no": False})
 
 
-## ----------------------------
-# Normalize Chatbot_Addressable
-# ----------------------------
-filtered_df["Chatbot_Addressable"] = filtered_df["Chatbot_Addressable"].astype(str).str.lower().replace({"yes": True, "no": False})
-
 # =========================================================
 # KPI DASHBOARD
 # =========================================================
 total_volume = len(filtered_df)
-chatbot_count = filtered_df["Chatbot_Addressable"].sum()
+chatbot_count = filtered_df["Chatbot_Addressable"].eq("Yes").sum()
 pct_chatbot = (chatbot_count / total_volume * 100) if total_volume else 0
+# Assume 4 minutes per email without automation, 0.1 min if automated
 hours_saved = ((total_volume * 4) - (chatbot_count * 0.1)) / 60
 fte_saved = hours_saved / 160
 
@@ -97,53 +93,6 @@ k1.metric("Total Emails", total_volume)
 k2.metric("Automation Potential", f"{pct_chatbot:.1f}%")
 k3.metric("Potential Hours Saved", f"{hours_saved:.1f}")
 k4.metric("Potential FTE Savings", f"{fte_saved:.2f}")
-
-# =========================================================
-# SUB-CATEGORY TABLE — EXECUTIVE VIEW
-# =========================================================
-st.subheader("📝 Sub-Category Insights (Top Categories)")
-
-overview_data = []
-
-for cat in filtered_df["Category"].unique():
-    cat_df = filtered_df[filtered_df["Category"] == cat]
-    for subcat in cat_df["Sub-Category"].unique():
-        subcat_df = cat_df[cat_df["Sub-Category"] == subcat]
-        total_emails = len(subcat_df)
-        chatbot_yes = subcat_df["Chatbot_Addressable"].sum()
-        pct_auto = round((chatbot_yes / total_emails * 100) if total_emails else 0, 1)
-
-        # Safe peak hour / weekday
-        peak_hour = subcat_df.groupby("Hour").size()
-        peak_hour = peak_hour.idxmax() if not peak_hour.empty else "N/A"
-
-        peak_weekday = subcat_df.groupby("Weekday").size()
-        peak_weekday = peak_weekday.idxmax() if not peak_weekday.empty else "N/A"
-
-        # Safe sample email
-        sample_email = subcat_df["Body.TextBody"].dropna().iloc[0] if not subcat_df["Body.TextBody"].dropna().empty else ""
-        sample_email = sample_email[:150] + ("..." if len(sample_email) > 150 else "")
-
-        overview_data.append({
-            "Category": cat,
-            "Sub-Category": subcat,
-            "Total Emails": total_emails,
-            "Automation Potential (%)": pct_auto,
-            "Peak Hour": peak_hour,
-            "Peak Weekday": peak_weekday,
-            "Sample Email": sample_email
-        })
-
-overview_df = pd.DataFrame(overview_data)
-
-# Sort by automation potential first, then total emails
-overview_df = overview_df.sort_values(["Automation Potential (%)", "Total Emails"], ascending=[False, False])
-
-# Display as a wide, executive-friendly table
-st.dataframe(overview_df, use_container_width=True)
-
-st.info("🔹 Sample emails truncated to 150 characters.")
-
 
 # =========================================================
 # TREND ANALYSIS
@@ -160,6 +109,54 @@ fig_heat = px.density_heatmap(
     color_continuous_scale="reds"
 )
 st.plotly_chart(fig_heat, use_container_width=True)
+
+# =========================================================
+# CATEGORY INSIGHTS
+# =========================================================
+st.subheader("📂 Category Insights")
+category_counts = filtered_df.groupby("Category").size().reset_index(name="Count").sort_values("Count", ascending=False)
+fig_cat = px.bar(
+    category_counts, x="Count", y="Category", orientation="h",
+    color="Count", color_continuous_scale=px.colors.sequential.OrRd,
+    title="Volume by Category"
+)
+st.plotly_chart(fig_cat, use_container_width=True)
+
+# =========================================================
+# SUB-CATEGORY TABLE — EXECUTIVE VIEW
+# =========================================================
+st.subheader("📝 Sub-Category Insights (Top Categories)")
+
+overview_data = []
+for cat in filtered_df["Category"].unique():
+    cat_df = filtered_df[filtered_df["Category"] == cat]
+    for subcat in cat_df["Sub-Category"].unique():
+        subcat_df = cat_df[cat_df["Sub-Category"] == subcat]
+        total_emails = len(subcat_df)
+        chatbot_yes = subcat_df[subcat_df["Chatbot_Addressable"] == "Yes"].shape[0]
+        pct_auto = round((chatbot_yes / total_emails * 100) if total_emails else 0, 1)
+        peak_hour = subcat_df.groupby("Hour").size().idxmax()
+        peak_weekday = subcat_df.groupby("Weekday").size().idxmax()
+        sample_email = subcat_df["Body.TextBody"].dropna().iloc[0][:150] + ("..." if len(subcat_df["Body.TextBody"].iloc[0]) > 150 else "")
+
+        overview_data.append({
+            "Category": cat,
+            "Sub-Category": subcat,
+            "Total Emails": total_emails,
+            "Automation Potential (%)": pct_auto,
+            "Peak Hour": peak_hour,
+            "Peak Weekday": peak_weekday,
+            "Sample Email": sample_email
+        })
+
+overview_df = pd.DataFrame(overview_data)
+st.dataframe(
+    overview_df.sort_values(["Automation Potential (%)", "Total Emails"], ascending=[False, False]),
+    use_container_width=True
+)
+
+# Optional: Expand sample emails per row
+st.info("🔹 Sample emails truncated to 150 characters.")
 
 
 # =========================================================
