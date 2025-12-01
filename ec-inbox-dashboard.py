@@ -124,9 +124,11 @@ if uploaded_file:
 
 
     # =========================================================
-    # 📝 CATEGORY & SUB-CATEGORY BREAKDOWN WITH SAMPLE EMAILS
+    # 📝 CATEGORY & SUB-CATEGORY BREAKDOWN — FLATTER VIEW
     # =========================================================
-    st.subheader("📝 Category & Sub-Category Breakdown")
+    st.subheader("📝 Category & Sub-Category Overview")
+
+    overview_data = []
 
     for cat in filtered_df["Category"].unique():
         cat_df = filtered_df[filtered_df["Category"] == cat]
@@ -136,49 +138,24 @@ if uploaded_file:
 
         chatbot_cat = cat_df[cat_df["Chatbot_Addressable"] == "Yes"].shape[0]
         pct_chatbot_cat = (chatbot_cat / total_cat * 100)
-        
-        peak_hour_cat = cat_df.groupby("Hour").size().idxmax() if "Hour" in cat_df.columns else "N/A"
-        peak_weekday_cat = cat_df.groupby("Weekday").size().idxmax() if "Weekday" in cat_df.columns else "N/A"
 
-        # Highlight high automation potential
-        automation_emoji = "🤖" if pct_chatbot_cat >= 50 else "⚡" if pct_chatbot_cat >= 20 else ""
+        for subcat in cat_df["Sub-Category"].unique():
+            subcat_df = cat_df[cat_df["Sub-Category"] == subcat]
+            total_subcat = len(subcat_df)
+            chatbot_subcat = subcat_df[subcat_df["Chatbot_Addressable"] == "Yes"].shape[0]
+            pct_chatbot_subcat = (chatbot_subcat / total_subcat * 100) if total_subcat > 0 else 0
 
-        with st.expander(f"{cat} — {total_cat} emails | {pct_chatbot_cat:.1f}% automated potential {automation_emoji}"):
-            st.markdown(f"**Peak Hour:** {peak_hour_cat}:00")
-            st.markdown(f"**Peak Weekday:** {peak_weekday_cat}")
-            st.markdown("---")
+            overview_data.append({
+                "Category": cat,
+                "Sub-Category": subcat,
+                "Total Emails": total_subcat,
+                "Automated Potential (%)": round(pct_chatbot_subcat, 1),
+                "Sample Emails": "\n".join(subcat_df["Body.TextBody"].head(3).fillna("").apply(lambda x: x[:150] + ("..." if len(x) > 150 else "")))
+            })
 
-            for subcat in cat_df["Sub-Category"].unique():
-                subcat_df = cat_df[cat_df["Sub-Category"] == subcat]
-                total_subcat = len(subcat_df)
-                chatbot_subcat = subcat_df[subcat_df["Chatbot_Addressable"] == "Yes"].shape[0]
-                pct_chatbot_subcat = (chatbot_subcat / total_subcat * 100) if total_subcat > 0 else 0
-                automation_emoji_sub = "🤖" if pct_chatbot_subcat >= 50 else "⚡" if pct_chatbot_subcat >= 20 else ""
-
-                with st.expander(f"▶ {subcat} — {total_subcat} emails | {pct_chatbot_subcat:.1f}% automated {automation_emoji_sub}"):
-                    peak_hour_subcat = subcat_df.groupby("Hour").size().idxmax() if "Hour" in subcat_df.columns else "N/A"
-                    peak_weekday_subcat = subcat_df.groupby("Weekday").size().idxmax() if "Weekday" in subcat_df.columns else "N/A"
-                    st.markdown(f"**Peak Hour:** {peak_hour_subcat}:00")
-                    st.markdown(f"**Peak Weekday:** {peak_weekday_subcat}")
-                    
-                    if "Sub-Sub-Category" in subcat_df.columns:
-                        for subsub in subcat_df["Sub-Sub-Category"].unique():
-                            subsub_df = subcat_df[subcat_df["Sub-Sub-Category"] == subsub]
-                            total_subsub = len(subsub_df)
-                            chatbot_subsub = subsub_df[subsub_df["Chatbot_Addressable"] == "Yes"].shape[0]
-                            pct_chatbot_subsub = (chatbot_subsub / total_subsub * 100) if total_subsub > 0 else 0
-                            automation_emoji_subsub = "🤖" if pct_chatbot_subsub >= 50 else "⚡" if pct_chatbot_subsub >= 20 else ""
-
-                            with st.expander(f"→ {subsub} — {total_subsub} emails | {pct_chatbot_subsub:.1f}% automated {automation_emoji_subsub}"):
-                                st.markdown("**Sample Emails:**")
-                                samples = subsub_df["Body.TextBody"].head(5).fillna("")
-                                for sample in samples:
-                                    preview = sample[:200] + ("..." if len(sample) > 200 else "")
-                                    st.markdown(f"- {preview}")
-                                if total_subsub > 5:
-                                    st.caption(f"Showing 5 of {total_subsub} emails")
-
-
+    # Display as a Streamlit DataFrame (sortable, scrollable)
+    overview_df = pd.DataFrame(overview_data)
+    st.dataframe(overview_df.sort_values(["Category", "Sub-Category"]))
 
     # =========================================================
     # EXECUTIVE SUMMARY & STRATEGIC INSIGHTS
