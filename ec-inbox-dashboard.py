@@ -101,15 +101,14 @@ if uploaded_file:
     monthly = filtered_df.groupby("Month", as_index=False).size().rename(columns={"size": "Count"})
     fig_month = px.line(
         monthly, x="Month", y="Count", markers=True, title="Monthly Email Volume",
-        line_shape='linear', color_discrete_sequence=[PRIMARY_RED]
+        line_shape='linear'
     )
     st.plotly_chart(fig_month, use_container_width=True)
 
     # Hourly Heatmap
     weekday_hour = filtered_df.groupby(["Weekday", "Hour"], as_index=False).size().rename(columns={"size": "Count"})
     fig_heat = px.density_heatmap(
-        weekday_hour, x="Hour", y="Weekday", z="Count",
-        color_continuous_scale=[WHITE, PRIMARY_RED]
+        weekday_hour, x="Hour", y="Weekday", z="Count"
     )
     st.plotly_chart(fig_heat, use_container_width=True)
 
@@ -120,7 +119,7 @@ if uploaded_file:
     category_counts = filtered_df.groupby("category", as_index=False).size().rename(columns={"size": "Count"})
     fig_cat = px.bar(
         category_counts, x="Count", y="category", orientation="h",
-        title="Volume by Category", color_discrete_sequence=[PRIMARY_RED]
+        title="Volume by Category"
     )
     st.plotly_chart(fig_cat, use_container_width=True)
 
