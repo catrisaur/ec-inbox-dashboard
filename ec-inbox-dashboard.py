@@ -54,7 +54,6 @@ if uploaded_file:
     st.sidebar.header("🔎 Filters")
     selected_categories = st.sidebar.multiselect("Filter by Category", sorted(df["Category"].unique()))
     selected_subcats = st.sidebar.multiselect("Filter by Sub-Category", sorted(df["Sub-Category"].unique()))
-    selected_subsub = st.sidebar.multiselect("Filter by Sub-Sub-Category", sorted(df["Sub-Sub-Category"].unique()))
     date_range = st.sidebar.date_input(
         "Date Range",
         value=[min_date, max_date],
@@ -71,8 +70,6 @@ if uploaded_file:
         filtered_df = filtered_df[filtered_df["Category"].isin(selected_categories)]
     if selected_subcats:
         filtered_df = filtered_df[filtered_df["Sub-Category"].isin(selected_subcats)]
-    if selected_subsub:
-        filtered_df = filtered_df[filtered_df["Sub-Sub-Category"].isin(selected_subsub)]
 
     if filtered_df.empty:
         st.warning("No data matches your filters.")
