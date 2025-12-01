@@ -71,15 +71,14 @@ if uploaded_file:
     df["Hour"] = df["DateTimeReceived"].dt.hour
     df["Weekday"] = df["DateTimeReceived"].dt.day_name()
 
+    # Ensure categories are strings to avoid sorting issues
+    df["Category"] = df["Category"].fillna("Unknown").astype(str)
+    df["Sub-Category"] = df["Sub-Category"].fillna("Unknown").astype(str)
+    df["Chatbot_Addressable"] = df["Chatbot_Addressable"].fillna("No").astype(str)
+
     # =========================================================
     # SIDEBAR FILTERS
     # =========================================================
-
-
-    # Convert Category and Sub-Category to strings, fill NaNs
-    df["Category"] = df["Category"].fillna("Unknown").astype(str)
-    df["Sub-Category"] = df["Sub-Category"].fillna("Unknown").astype(str)
-
     st.sidebar.header("🔎 Filters")
 
     category_list = sorted(df["Category"].unique())
@@ -107,11 +106,11 @@ if uploaded_file:
         st.stop()
 
     # =========================================================
-    # KPI CALCULATIONS (ENHANCED)
+    # KPI CALCULATIONS (SAFE)
     # =========================================================
     today = pd.Timestamp.today()
 
-    total_volume = len(filtered_df)
+    total_volume = len(filtered_df) or 1  # prevent division by zero
     ytd_volume = len(df[df["DateTimeReceived"].dt.year == today.year])
     mtd_volume = len(df[df["DateTimeReceived"].dt.month == today.month])
     wtd_volume = len(df[df["DateTimeReceived"].dt.isocalendar().week == today.isocalendar().week])
@@ -129,9 +128,9 @@ if uploaded_file:
     fte_saved = hours_saved / 160
 
     # Workload Pattern Insights
-    peak_hour = filtered_df["Hour"].value_counts().idxmax()
-    peak_day = filtered_df["Date"].value_counts().idxmax()
-    busiest_weekday = filtered_df["Weekday"].value_counts().idxmax()
+    peak_hour = filtered_df["Hour"].mode()[0]
+    peak_day = filtered_df["Date"].mode()[0]
+    busiest_weekday = filtered_df["Weekday"].mode()[0]
 
     # =========================================================
     # KPI DASHBOARD
@@ -180,7 +179,7 @@ if uploaded_file:
     st.plotly_chart(fig_heat, use_container_width=True)
 
     # =========================================================
-    # CATEGORY INSIGHTS (ADVANCED)
+    # CATEGORY INSIGHTS
     # =========================================================
     st.subheader("📂 Category & Sub-Category Insights")
 
@@ -190,7 +189,9 @@ if uploaded_file:
         .reset_index()
         .rename(columns={"index": "Category", "Category": "Count"})
     )
-    category_counts["% of Total"] = category_counts["Count"] / total_volume * 100
+    # Ensure Count is numeric
+    category_counts["Count"] = pd.to_numeric(category_counts["Count"], errors="coerce").fillna(0)
+    category_counts["% of Total"] = (category_counts["Count"] / total_volume * 100).round(2)
 
     fig_cat = px.bar(
         category_counts,
@@ -205,6 +206,8 @@ if uploaded_file:
         .size()
         .reset_index(name="Count")
     )
+    subcat["Count"] = pd.to_numeric(subcat["Count"], errors="coerce").fillna(0)
+
     fig_subcat = px.treemap(
         subcat,
         path=["Category", "Sub-Category"],
@@ -214,7 +217,7 @@ if uploaded_file:
     st.plotly_chart(fig_subcat, use_container_width=True)
 
     # =========================================================
-    # AUTOMATION OPPORTUNITY (ADVANCED)
+    # AUTOMATION OPPORTUNITY
     # =========================================================
     st.subheader("🤖 Automation Opportunity Analysis")
 
@@ -225,6 +228,8 @@ if uploaded_file:
             Auto=("Chatbot_Addressable", lambda s: (s == "Yes").sum())
         )
     )
+    auto_summary["Total"] = pd.to_numeric(auto_summary["Total"], errors="coerce").fillna(0)
+    auto_summary["Auto"] = pd.to_numeric(auto_summary["Auto"], errors="coerce").fillna(0)
     auto_summary["Auto %"] = (auto_summary["Auto"] / auto_summary["Total"] * 100).round(1)
     auto_summary["Manual Hrs"] = auto_summary["Total"] * 4 / 60
     auto_summary["Potential Savings (hrs)"] = (auto_summary["Auto"] * 4 - auto_summary["Auto"] * 0.1) / 60
@@ -248,11 +253,9 @@ if uploaded_file:
     # =========================================================
     st.subheader("⚠ Operational Alerts & Risk Flags")
 
-    # Example rule: Data Protection = sensitive
     if "Data Protection" in filtered_df["Category"].values:
         st.error("🚨 Data Protection emails detected — human review recommended")
 
-    # Peak load detection (simple anomaly rule)
     threshold = daily["Count"].mean() + 2 * daily["Count"].std()
     anomalies = daily[daily["Count"] > threshold]
 
@@ -296,8 +299,7 @@ if uploaded_file:
    Highest-granularity payloads deliver big training ROI.
 
 ---
-
-These insights highlight opportunities for **efficiency uplift**, **SLA improvement**, and **automation-driven cost optimization** across the entire email workflow value chain.
+These insights highlight opportunities for **efficiency uplift**, **SLA improvement**, and **automation-driven cost optimization** across the email workflow.
 """)
 
 else:
