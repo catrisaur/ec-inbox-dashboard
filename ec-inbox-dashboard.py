@@ -122,26 +122,41 @@ if uploaded_file:
     st.plotly_chart(fig_cat, use_container_width=True)
 
     # =========================================================
-    # CATEGORY & SUB-CATEGORY BREAKDOWN — FLAT
+    # SUB-CATEGORY TABLE — EXECUTIVE VIEW
     # =========================================================
-    st.subheader("📝 Category & Sub-Category Overview")
+    st.subheader("📝 Sub-Category Insights (Top Categories)")
 
-for cat, cat_df in filtered_df.groupby("Category"):
-    st.markdown(f"### 📂 {cat} — {len(cat_df)} emails | Automation: {cat_df['Chatbot_Addressable'].eq('Yes').mean()*100:.1f}%")
-    
-    subcat_cols = st.columns(1)  # You can make 2-3 per row if wide enough
-    for subcat, subcat_df in cat_df.groupby("Sub-Category"):
-        total_sub = len(subcat_df)
-        pct_chatbot_sub = subcat_df['Chatbot_Addressable'].eq("Yes").mean() * 100
-        peak_hour = subcat_df["Hour"].mode().iloc[0] if not subcat_df.empty else "N/A"
-        peak_weekday = subcat_df["Weekday"].mode().iloc[0] if not subcat_df.empty else "N/A"
-        
-        with st.expander(f"▶ {subcat} — {total_sub} emails | Automation: {pct_chatbot_sub:.1f}%"):
-            st.markdown(f"- **Peak Hour:** {peak_hour}:00")
-            st.markdown(f"- **Peak Weekday:** {peak_weekday}")
-            st.markdown("- **Sample Emails:**")
-            for sample in subcat_df["Body.TextBody"].dropna().head(3):
-                st.markdown(f"    - {sample[:200]}{'...' if len(sample) > 200 else ''}")
+    overview_data = []
+    for cat in filtered_df["Category"].unique():
+        cat_df = filtered_df[filtered_df["Category"] == cat]
+        for subcat in cat_df["Sub-Category"].unique():
+            subcat_df = cat_df[cat_df["Sub-Category"] == subcat]
+            total_emails = len(subcat_df)
+            chatbot_yes = subcat_df[subcat_df["Chatbot_Addressable"] == "Yes"].shape[0]
+            pct_auto = round((chatbot_yes / total_emails * 100) if total_emails else 0, 1)
+            peak_hour = subcat_df.groupby("Hour").size().idxmax()
+            peak_weekday = subcat_df.groupby("Weekday").size().idxmax()
+            sample_email = subcat_df["Body.TextBody"].dropna().iloc[0][:150] + ("..." if len(subcat_df["Body.TextBody"].iloc[0]) > 150 else "")
+
+            overview_data.append({
+                "Category": cat,
+                "Sub-Category": subcat,
+                "Total Emails": total_emails,
+                "Automation Potential (%)": pct_auto,
+                "Peak Hour": peak_hour,
+                "Peak Weekday": peak_weekday,
+                "Sample Email": sample_email
+            })
+
+    overview_df = pd.DataFrame(overview_data)
+    st.dataframe(
+        overview_df.sort_values(["Automation Potential (%)", "Total Emails"], ascending=[False, False]),
+        use_container_width=True
+    )
+
+    # Optional: Expand sample emails per row
+    st.info("🔹 Sample emails truncated to 150 characters. Click a row for full email in future enhancements.")
+
 
     # =========================================================
     # EXECUTIVE SUMMARY & STRATEGIC INSIGHTS
