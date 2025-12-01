@@ -122,48 +122,62 @@ if uploaded_file:
     )
     st.plotly_chart(fig_cat, use_container_width=True)
 
+
     # =========================================================
-    # BREAKDOWN PER CATEGORY WITH SAMPLE EMAILS
+    # 📝 CATEGORY & SUB-CATEGORY BREAKDOWN WITH SAMPLE EMAILS
     # =========================================================
     st.subheader("📝 Category & Sub-Category Breakdown")
 
     for cat in filtered_df["Category"].unique():
         cat_df = filtered_df[filtered_df["Category"] == cat]
         total_cat = len(cat_df)
-        chatbot_cat = cat_df[cat_df["Chatbot_Addressable"] == "Yes"].shape[0]
-        pct_chatbot_cat = (chatbot_cat / total_cat * 100) if total_cat > 0 else 0
-        peak_hour_cat = cat_df.groupby("Hour").size().idxmax()
-        peak_weekday_cat = cat_df.groupby("Weekday").size().idxmax()
+        if total_cat == 0:
+            continue
 
-        with st.expander(f"{cat} — {total_cat} emails | {pct_chatbot_cat:.1f}% automated potential"):
+        chatbot_cat = cat_df[cat_df["Chatbot_Addressable"] == "Yes"].shape[0]
+        pct_chatbot_cat = (chatbot_cat / total_cat * 100)
+        
+        peak_hour_cat = cat_df.groupby("Hour").size().idxmax() if "Hour" in cat_df.columns else "N/A"
+        peak_weekday_cat = cat_df.groupby("Weekday").size().idxmax() if "Weekday" in cat_df.columns else "N/A"
+
+        # Highlight high automation potential
+        automation_emoji = "🤖" if pct_chatbot_cat >= 50 else "⚡" if pct_chatbot_cat >= 20 else ""
+
+        with st.expander(f"{cat} — {total_cat} emails | {pct_chatbot_cat:.1f}% automated potential {automation_emoji}"):
             st.markdown(f"**Peak Hour:** {peak_hour_cat}:00")
             st.markdown(f"**Peak Weekday:** {peak_weekday_cat}")
+            st.markdown("---")
 
-            # Loop through Sub-Categories
             for subcat in cat_df["Sub-Category"].unique():
                 subcat_df = cat_df[cat_df["Sub-Category"] == subcat]
                 total_subcat = len(subcat_df)
                 chatbot_subcat = subcat_df[subcat_df["Chatbot_Addressable"] == "Yes"].shape[0]
                 pct_chatbot_subcat = (chatbot_subcat / total_subcat * 100) if total_subcat > 0 else 0
+                automation_emoji_sub = "🤖" if pct_chatbot_subcat >= 50 else "⚡" if pct_chatbot_subcat >= 20 else ""
 
-                with st.expander(f"▶ {subcat} — {total_subcat} emails | {pct_chatbot_subcat:.1f}% automated potential"):
-                    peak_hour_subcat = subcat_df.groupby("Hour").size().idxmax()
-                    peak_weekday_subcat = subcat_df.groupby("Weekday").size().idxmax()
+                with st.expander(f"▶ {subcat} — {total_subcat} emails | {pct_chatbot_subcat:.1f}% automated {automation_emoji_sub}"):
+                    peak_hour_subcat = subcat_df.groupby("Hour").size().idxmax() if "Hour" in subcat_df.columns else "N/A"
+                    peak_weekday_subcat = subcat_df.groupby("Weekday").size().idxmax() if "Weekday" in subcat_df.columns else "N/A"
                     st.markdown(f"**Peak Hour:** {peak_hour_subcat}:00")
                     st.markdown(f"**Peak Weekday:** {peak_weekday_subcat}")
-
-                    # Sub-Sub-Category breakdown
+                    
                     if "Sub-Sub-Category" in subcat_df.columns:
                         for subsub in subcat_df["Sub-Sub-Category"].unique():
                             subsub_df = subcat_df[subcat_df["Sub-Sub-Category"] == subsub]
                             total_subsub = len(subsub_df)
                             chatbot_subsub = subsub_df[subsub_df["Chatbot_Addressable"] == "Yes"].shape[0]
                             pct_chatbot_subsub = (chatbot_subsub / total_subsub * 100) if total_subsub > 0 else 0
+                            automation_emoji_subsub = "🤖" if pct_chatbot_subsub >= 50 else "⚡" if pct_chatbot_subsub >= 20 else ""
 
-                            with st.expander(f"→ {subsub} — {total_subsub} emails | {pct_chatbot_subsub:.1f}% automated potential"):
+                            with st.expander(f"→ {subsub} — {total_subsub} emails | {pct_chatbot_subsub:.1f}% automated {automation_emoji_subsub}"):
                                 st.markdown("**Sample Emails:**")
-                                for sample in subsub_df["Body.TextBody"].head(5):
-                                    st.markdown(f"- {sample[:200]}{'...' if len(sample) > 200 else ''}")
+                                samples = subsub_df["Body.TextBody"].head(5).fillna("")
+                                for sample in samples:
+                                    preview = sample[:200] + ("..." if len(sample) > 200 else "")
+                                    st.markdown(f"- {preview}")
+                                if total_subsub > 5:
+                                    st.caption(f"Showing 5 of {total_subsub} emails")
+
 
 
     # =========================================================
