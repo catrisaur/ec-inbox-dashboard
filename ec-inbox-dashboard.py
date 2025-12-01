@@ -71,7 +71,7 @@ if uploaded_file:
     st.success("✅ Data loaded successfully")
 
     # Validate schema
-    required_cols = ["DateTimeReceived", "category", "sub_category", "sub_sub_category", "Chatbot_Addressable"]
+    required_cols = ["DateTimeReceived", "Category", "Sub-Category", "Sub-Sub-Category", "Chatbot_Addressable"]
     missing = [c for c in required_cols if c not in df.columns]
     if missing:
         st.error(f"❌ Missing required columns: {missing}")
@@ -99,9 +99,9 @@ if uploaded_file:
     # SIDEBAR FILTERS
     # =========================================================
     st.sidebar.header("🔎 Filters")
-    selected_categories = st.sidebar.multiselect("Filter by Category", sorted(df["category"].unique()))
-    selected_subcats = st.sidebar.multiselect("Filter by Sub-Category", sorted(df["sub_category"].unique()))
-    selected_subsub = st.sidebar.multiselect("Filter by Sub-Sub-Category", sorted(df["sub_sub_category"].unique()))
+    selected_categories = st.sidebar.multiselect("Filter by Category", sorted(df["Category"].unique()))
+    selected_subcats = st.sidebar.multiselect("Filter by Sub-Category", sorted(df["Sub-Category"].unique()))
+    selected_subsub = st.sidebar.multiselect("Filter by Sub-Sub-Category", sorted(df["Sub-Sub-Category"].unique()))
     date_range = st.sidebar.date_input(
         "Date Range",
         value=[min_date, max_date],
@@ -115,11 +115,11 @@ if uploaded_file:
         (df["DateTimeReceived"].dt.date <= date_range[1])
     ]
     if selected_categories:
-        filtered_df = filtered_df[filtered_df["category"].isin(selected_categories)]
+        filtered_df = filtered_df[filtered_df["Category"].isin(selected_categories)]
     if selected_subcats:
-        filtered_df = filtered_df[filtered_df["sub_category"].isin(selected_subcats)]
+        filtered_df = filtered_df[filtered_df["Sub-Category"].isin(selected_subcats)]
     if selected_subsub:
-        filtered_df = filtered_df[filtered_df["sub_sub_category"].isin(selected_subsub)]
+        filtered_df = filtered_df[filtered_df["Sub-Sub-Category"].isin(selected_subsub)]
 
     if filtered_df.empty:
         st.warning("No data matches your filters.")
