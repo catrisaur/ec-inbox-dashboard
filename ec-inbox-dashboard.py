@@ -74,6 +74,9 @@ if filtered_df.empty:
     st.warning("No data matches your filters.")
     st.stop()
 
+filtered_df["Chatbot_Addressable"] = filtered_df["Chatbot_Addressable"].astype(str).str.lower().replace({"yes": True, "no": False})
+
+
 # =========================================================
 # KPI DASHBOARD
 # =========================================================
