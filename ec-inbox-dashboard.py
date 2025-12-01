@@ -26,7 +26,7 @@ st.markdown(
 
         /* Title and headers */
         h1, h2, h3, h4, h5 {{
-            color: {PRIMARY_RED} !important;
+            color: {DARK_GREY} !important;
             font-weight: 700;
         }}
 
