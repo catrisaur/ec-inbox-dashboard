@@ -74,6 +74,12 @@ if uploaded_file:
     # =========================================================
     # SIDEBAR FILTERS
     # =========================================================
+
+
+    # Convert Category and Sub-Category to strings, fill NaNs
+    df["Category"] = df["Category"].fillna("Unknown").astype(str)
+    df["Sub-Category"] = df["Sub-Category"].fillna("Unknown").astype(str)
+
     st.sidebar.header("🔎 Filters")
 
     category_list = sorted(df["Category"].unique())
