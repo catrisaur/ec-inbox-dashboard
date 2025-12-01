@@ -195,7 +195,7 @@ if uploaded_file:
 
     fig_cat = px.bar(
         category_counts,
-        x="Count", y="Category", orientation="h",
+        x="Category", y="Count", orientation="h",
         title="Email Volume by Category", text="Count"
     )
     st.plotly_chart(fig_cat, use_container_width=True)
