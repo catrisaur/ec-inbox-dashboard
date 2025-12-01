@@ -4,6 +4,67 @@ import plotly.express as px
 from datetime import datetime
 
 # =========================================================
+# COLOR THEME
+# =========================================================
+PRIMARY_RED = "#EE2536"
+WHITE = "#FFFFFF"
+LIGHT_GREY = "#F8F8F8"
+DARK_GREY = "#333333"
+
+# Inject custom CSS theme
+st.markdown(
+    f"""
+    <style>
+        /* Global background */
+        body {{
+            background-color: {LIGHT_GREY};
+        }}
+
+        .stApp {{
+            background-color: {LIGHT_GREY};
+        }}
+
+        /* Title and headers */
+        h1, h2, h3, h4, h5 {{
+            color: {PRIMARY_RED} !important;
+            font-weight: 700;
+        }}
+
+        /* Sidebar styling */
+        section[data-testid="stSidebar"] > div {{
+            background-color: {WHITE};
+            border-right: 3px solid {PRIMARY_RED};
+        }}
+        .css-1d391kg {{
+            background-color: {WHITE} !important;
+        }}
+
+        /* KPI Metrics */
+        div[data-testid="metric-container"] {{
+            background-color: {WHITE};
+            padding: 20px;
+            border-radius: 12px;
+            border-left: 8px solid {PRIMARY_RED};
+            box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+        }}
+
+        /* Buttons */
+        .stButton>button {{
+            background-color: {PRIMARY_RED} !important;
+            color: white !important;
+            border-radius: 8px !important;
+            border: none;
+        }}
+        .stButton>button:hover {{
+            opacity: 0.9;
+        }}
+
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+# =========================================================
 # PAGE CONFIGURATION
 # =========================================================
 st.set_page_config(page_title="E&C Inbox Dashboard", layout="wide")
