@@ -25,7 +25,7 @@ if uploaded_file:
     st.success("✅ Data loaded successfully")
 
     # Validate schema
-    required_cols = ["DateTimeReceived", "Category", "Sub-Category", "Chatbot_Addressable"]
+    required_cols = ["DateTimeReceived", "category", "sub_category", "Chatbot_Addressable"]
     if any(col not in df.columns for col in required_cols):
         st.error("❌ Missing required columns.")
         st.stop()
