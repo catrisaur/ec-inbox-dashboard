@@ -15,31 +15,20 @@ DARK_GREY = "#333333"
 st.markdown(
     f"""
     <style>
-        /* Global background */
         body {{
             background-color: {LIGHT_GREY};
         }}
-
         .stApp {{
             background-color: {LIGHT_GREY};
         }}
-
-        /* Title and headers */
         h1, h2, h3, h4, h5 {{
             color: {DARK_GREY} !important;
             font-weight: 700;
         }}
-
-        /* Sidebar styling */
         section[data-testid="stSidebar"] > div {{
             background-color: {WHITE};
             border-right: 3px solid {PRIMARY_RED};
         }}
-        .css-1d391kg {{
-            background-color: {WHITE} !important;
-        }}
-
-        /* KPI Metrics */
         div[data-testid="metric-container"] {{
             background-color: {WHITE};
             padding: 20px;
@@ -47,8 +36,6 @@ st.markdown(
             border-left: 8px solid {PRIMARY_RED};
             box-shadow: 0 2px 6px rgba(0,0,0,0.08);
         }}
-
-        /* Buttons */
         .stButton>button {{
             background-color: {PRIMARY_RED} !important;
             color: white !important;
@@ -58,7 +45,6 @@ st.markdown(
         .stButton>button:hover {{
             opacity: 0.9;
         }}
-
     </style>
     """,
     unsafe_allow_html=True
@@ -92,23 +78,22 @@ if uploaded_file:
         st.stop()
 
     # =========================================================
-    # DATA PREP
+    # CLEAN DATETIME
     # =========================================================
-    df["DateTimeReceived"] = pd.to_datetime(df["DateTimeReceived"], errors="coerce")
+    df["DateTimeReceived"] = pd.to_datetime(
+        df["DateTimeReceived"],
+        format="%m/%d/%Y %H:%M",
+        errors="coerce"
+    )
     df.dropna(subset=["DateTimeReceived"], inplace=True)
+
     df["Date"] = df["DateTimeReceived"].dt.date
     df["Month"] = df["DateTimeReceived"].dt.to_period("M").astype(str)
     df["Hour"] = df["DateTimeReceived"].dt.hour
     df["Weekday"] = df["DateTimeReceived"].dt.day_name()
 
-    # Guarantee date objects (not strings/floats)
     min_date = df["DateTimeReceived"].min().date()
     max_date = df["DateTimeReceived"].max().date()
-
-    date_range = st.sidebar.date_input(
-        "Date Range",
-        value=[min_date, max_date]
-    )
 
     # =========================================================
     # SIDEBAR FILTERS
@@ -117,11 +102,17 @@ if uploaded_file:
     selected_categories = st.sidebar.multiselect("Filter by Category", sorted(df["category"].unique()))
     selected_subcats = st.sidebar.multiselect("Filter by Sub-Category", sorted(df["sub_category"].unique()))
     selected_subsub = st.sidebar.multiselect("Filter by Sub-Sub-Category", sorted(df["sub_sub_category"].unique()))
-    date_range = st.sidebar.date_input("Date Range", [df["DateTimeReceived"].min(), df["DateTimeReceived"].max()])
+    date_range = st.sidebar.date_input(
+        "Date Range",
+        value=[min_date, max_date],
+        min_value=min_date,
+        max_value=max_date
+    )
 
+    # Apply filters
     filtered_df = df[
-        (df["DateTimeReceived"] >= pd.to_datetime(date_range[0])) &
-        (df["DateTimeReceived"] <= pd.to_datetime(date_range[1]))
+        (df["DateTimeReceived"].dt.date >= date_range[0]) &
+        (df["DateTimeReceived"].dt.date <= date_range[1])
     ]
     if selected_categories:
         filtered_df = filtered_df[filtered_df["category"].isin(selected_categories)]
@@ -155,12 +146,18 @@ if uploaded_file:
     # =========================================================
     st.subheader("📉 Volume Trends")
     monthly = filtered_df.groupby("Month", as_index=False).size().rename(columns={"size": "Count"})
-    fig_month = px.line(monthly, x="Month", y="Count", markers=True, title="Monthly Email Volume")
+    fig_month = px.line(
+        monthly, x="Month", y="Count", markers=True, title="Monthly Email Volume",
+        line_shape='linear', color_discrete_sequence=[PRIMARY_RED]
+    )
     st.plotly_chart(fig_month, use_container_width=True)
 
     # Hourly Heatmap
     weekday_hour = filtered_df.groupby(["Weekday", "Hour"], as_index=False).size().rename(columns={"size": "Count"})
-    fig_heat = px.density_heatmap(weekday_hour, x="Hour", y="Weekday", z="Count", color_continuous_scale="Viridis")
+    fig_heat = px.density_heatmap(
+        weekday_hour, x="Hour", y="Weekday", z="Count",
+        color_continuous_scale=[WHITE, PRIMARY_RED]
+    )
     st.plotly_chart(fig_heat, use_container_width=True)
 
     # =========================================================
@@ -168,14 +165,16 @@ if uploaded_file:
     # =========================================================
     st.subheader("📂 Category Insights")
     category_counts = filtered_df.groupby("category", as_index=False).size().rename(columns={"size": "Count"})
-    fig_cat = px.bar(category_counts, x="Count", y="category", orientation="h", title="Volume by Category")
+    fig_cat = px.bar(
+        category_counts, x="Count", y="category", orientation="h",
+        title="Volume by Category", color_discrete_sequence=[PRIMARY_RED]
+    )
     st.plotly_chart(fig_cat, use_container_width=True)
 
     # =========================================================
     # EXECUTIVE SUMMARY
     # =========================================================
     st.subheader("📌 Strategic Recommendations")
-
     top_category = category_counts.iloc[0]['category'] if not category_counts.empty else "N/A"
     peak_month = monthly.loc[monthly['Count'].idxmax()]['Month'] if len(monthly) else "N/A"
 
