@@ -113,9 +113,9 @@ if uploaded_file:
     # CATEGORY INSIGHTS
     # =========================================================
     st.subheader("📂 Category Insights")
-    category_counts = filtered_df.groupby("category", as_index=False).size().rename(columns={"size": "Count"})
+    category_counts = filtered_df.groupby("Category", as_index=False).size().rename(columns={"size": "Count"})
     fig_cat = px.bar(
-        category_counts, x="Count", y="category", orientation="h",
+        category_counts, x="Count", y="Category", orientation="h",
         title="Volume by Category"
     )
     st.plotly_chart(fig_cat, use_container_width=True)
@@ -124,7 +124,7 @@ if uploaded_file:
     # EXECUTIVE SUMMARY
     # =========================================================
     st.subheader("📌 Strategic Recommendations")
-    top_category = category_counts.iloc[0]['category'] if not category_counts.empty else "N/A"
+    top_category = category_counts.iloc[0]['Category'] if not category_counts.empty else "N/A"
     peak_month = monthly.loc[monthly['Count'].idxmax()]['Month'] if len(monthly) else "N/A"
 
     st.markdown(f"""
