@@ -11,20 +11,38 @@ st.title("📊 E&C Inbox Dashboard")
 st.caption("Operational intelligence for email volumes, automation potential, and efficiency gains.")
 
 # =========================================================
-# FILE UPLOAD
+# FILE LOAD (default file or upload)
 # =========================================================
+DEFAULT_FILE = "ECInbox_Analysis_20251130.xlsx"  # <-- Replace with your actual file path
+
 uploaded_file = st.file_uploader("Upload your dataset (Excel or CSV)", type=["xlsx", "xls", "csv"])
 
 @st.cache_data
-def load_file(file):
-    if file.name.endswith(".csv"):
-        return pd.read_csv(file)
+def load_file(file_path):
+    """
+    Load Excel or CSV file into DataFrame.
+    Accepts either a path (string) or uploaded file object.
+    """
+    if isinstance(file_path, str):
+        # Load default file
+        return pd.read_excel(file_path)
+    elif hasattr(file_path, "name"):
+        # Uploaded file
+        if file_path.name.endswith(".csv"):
+            return pd.read_csv(file_path)
+        else:
+            return pd.read_excel(file_path)
     else:
-        return pd.read_excel(file)
+        return None
 
+# Load file: uploaded first, else default
 if uploaded_file:
     df = load_file(uploaded_file)
-    st.success("✅ Data loaded successfully")
+    st.success(f"✅ Uploaded file loaded successfully: {uploaded_file.name}")
+elif DEFAULT_FILE:
+    df = load_file(DEFAULT_FILE)
+    st.info(f"📂 Default file loaded: {DEFAULT_FILE}")
+
 
     # -----------------------
     # Validate schema
