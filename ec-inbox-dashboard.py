@@ -99,18 +99,6 @@ k3.metric("Potential Hours Saved", f"{hours_saved:.1f}")
 k4.metric("Potential FTE Savings", f"{fte_saved:.2f}")
 
 # =========================================================
-# CATEGORY INSIGHTS
-# =========================================================
-st.subheader("📂 Category Insights")
-category_counts = filtered_df.groupby("Category").size().reset_index(name="Count").sort_values("Count", ascending=False)
-fig_cat = px.bar(
-    category_counts, x="Count", y="Category", orientation="h",
-    color="Count", color_continuous_scale=px.colors.sequential.OrRd,
-    title="Volume by Category"
-)
-st.plotly_chart(fig_cat, use_container_width=True)
-
-# =========================================================
 # SUB-CATEGORY TABLE — EXECUTIVE VIEW
 # =========================================================
 st.subheader("📝 Sub-Category Insights (Top Categories)")
@@ -172,6 +160,7 @@ fig_heat = px.density_heatmap(
     color_continuous_scale="reds"
 )
 st.plotly_chart(fig_heat, use_container_width=True)
+
 
 # =========================================================
 # EXECUTIVE SUMMARY & STRATEGIC INSIGHTS
