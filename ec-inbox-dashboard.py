@@ -13,7 +13,7 @@ st.caption("Operational intelligence for email volumes, automation potential, an
 # =========================================================
 # FILE LOAD (default file or upload)
 # =========================================================
-DEFAULT_FILE = "ECInbox_Analysis_20251130.xlsx"  # <-- Replace with your actual file path
+DEFAULT_FILE = "12012025_ECInboxData.xlsx"  # <-- Replace with your actual file path
 
 @st.cache_data
 def load_default_data(file_path):
