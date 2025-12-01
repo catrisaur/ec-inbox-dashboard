@@ -8,12 +8,12 @@ from datetime import datetime
 # PAGE CONFIGURATION
 # =========================================================
 st.set_page_config(
-    page_title="Email Operations & Automation Intelligence Dashboard",
+    page_title="E&C Inbox Dashboard",
     layout="wide",
     initial_sidebar_state="expanded",
 )
 
-st.title("📊 Email Operations & Automation Intelligence Dashboard")
+st.title("E&C Inbox Dashboard")
 st.caption(
     "Comprehensive operational intelligence for email volumes, workload patterns, "
     "automation suitability, and efficiency forecasting."
