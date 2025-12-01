@@ -1,4 +1,3 @@
-
 import streamlit as st
 import pandas as pd
 import plotly.express as px
@@ -25,9 +24,10 @@ if uploaded_file:
     st.success("✅ Data loaded successfully")
 
     # Validate schema
-    required_cols = ["DateTimeReceived", "category", "sub_category", "Chatbot_Addressable"]
-    if any(col not in df.columns for col in required_cols):
-        st.error("❌ Missing required columns.")
+    required_cols = ["DateTimeReceived", "category", "sub_category", "sub_sub_category", "Chatbot_Addressable"]
+    missing = [c for c in required_cols if c not in df.columns]
+    if missing:
+        st.error(f"❌ Missing required columns: {missing}")
         st.stop()
 
     # =========================================================
@@ -46,6 +46,7 @@ if uploaded_file:
     st.sidebar.header("🔎 Filters")
     selected_categories = st.sidebar.multiselect("Filter by Category", sorted(df["category"].unique()))
     selected_subcats = st.sidebar.multiselect("Filter by Sub-Category", sorted(df["sub_category"].unique()))
+    selected_subsub = st.sidebar.multiselect("Filter by Sub-Sub-Category", sorted(df["sub_sub_category"].unique()))
     date_range = st.sidebar.date_input("Date Range", [df["DateTimeReceived"].min(), df["DateTimeReceived"].max()])
 
     filtered_df = df[
@@ -56,6 +57,8 @@ if uploaded_file:
         filtered_df = filtered_df[filtered_df["category"].isin(selected_categories)]
     if selected_subcats:
         filtered_df = filtered_df[filtered_df["sub_category"].isin(selected_subcats)]
+    if selected_subsub:
+        filtered_df = filtered_df[filtered_df["sub_sub_category"].isin(selected_subsub)]
 
     if filtered_df.empty:
         st.warning("No data matches your filters.")
@@ -102,11 +105,15 @@ if uploaded_file:
     # EXECUTIVE SUMMARY
     # =========================================================
     st.subheader("📌 Strategic Recommendations")
+
+    top_category = category_counts.iloc[0]['category'] if not category_counts.empty else "N/A"
+    peak_month = monthly.loc[monthly['Count'].idxmax()]['Month'] if len(monthly) else "N/A"
+
     st.markdown(f"""
     - **Automation Potential:** {pct_chatbot:.1f}%  
     - **Estimated Hours Saved:** {hours_saved:.1f} hrs  
-    - **Top Category:** {category_counts.iloc[0]['category']}  
-    - **Peak Month:** {monthly.loc[monthly['Count'].idxmax()]['Month']}  
+    - **Top Category:** {top_category}  
+    - **Peak Month:** {peak_month}  
 
     **Recommendations:**
     1. Prioritize automation for high-volume categories.
