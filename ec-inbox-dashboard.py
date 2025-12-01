@@ -40,6 +40,15 @@ if uploaded_file:
     df["Hour"] = df["DateTimeReceived"].dt.hour
     df["Weekday"] = df["DateTimeReceived"].dt.day_name()
 
+    # Guarantee date objects (not strings/floats)
+    min_date = df["DateTimeReceived"].min().date()
+    max_date = df["DateTimeReceived"].max().date()
+
+    date_range = st.sidebar.date_input(
+        "Date Range",
+        value=[min_date, max_date]
+    )
+
     # =========================================================
     # SIDEBAR FILTERS
     # =========================================================
