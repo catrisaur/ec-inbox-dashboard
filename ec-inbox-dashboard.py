@@ -126,33 +126,22 @@ if uploaded_file:
     # =========================================================
     st.subheader("📝 Category & Sub-Category Overview")
 
-    breakdown = []
-    for cat, cat_df in filtered_df.groupby("Category"):
-        for subcat, subcat_df in cat_df.groupby("Sub-Category"):
-            total_sub = len(subcat_df)
-            chatbot_sub = subcat_df["Chatbot_Addressable"].eq("Yes").sum()
-            pct_chatbot_sub = (chatbot_sub / total_sub * 100) if total_sub else 0
-            # Peak hour and weekday
-            peak_hour = subcat_df["Hour"].mode().iloc[0] if not subcat_df.empty else None
-            peak_weekday = subcat_df["Weekday"].mode().iloc[0] if not subcat_df.empty else None
-
-            # Sample emails
-            samples = "\n".join(
-                subcat_df["Body.TextBody"].dropna().head(3).apply(lambda x: x[:150] + ("..." if len(x) > 150 else ""))
-            )
-
-            breakdown.append({
-                "Category": cat,
-                "Sub-Category": subcat,
-                "Total Emails": total_sub,
-                "Automation Potential (%)": round(pct_chatbot_sub, 1),
-                "Peak Hour": peak_hour,
-                "Peak Weekday": peak_weekday,
-                "Sample Emails": samples
-            })
-
-    breakdown_df = pd.DataFrame(breakdown)
-    st.dataframe(breakdown_df.sort_values(["Category", "Sub-Category"]))
+for cat, cat_df in filtered_df.groupby("Category"):
+    st.markdown(f"### 📂 {cat} — {len(cat_df)} emails | Automation: {cat_df['Chatbot_Addressable'].eq('Yes').mean()*100:.1f}%")
+    
+    subcat_cols = st.columns(1)  # You can make 2-3 per row if wide enough
+    for subcat, subcat_df in cat_df.groupby("Sub-Category"):
+        total_sub = len(subcat_df)
+        pct_chatbot_sub = subcat_df['Chatbot_Addressable'].eq("Yes").mean() * 100
+        peak_hour = subcat_df["Hour"].mode().iloc[0] if not subcat_df.empty else "N/A"
+        peak_weekday = subcat_df["Weekday"].mode().iloc[0] if not subcat_df.empty else "N/A"
+        
+        with st.expander(f"▶ {subcat} — {total_sub} emails | Automation: {pct_chatbot_sub:.1f}%"):
+            st.markdown(f"- **Peak Hour:** {peak_hour}:00")
+            st.markdown(f"- **Peak Weekday:** {peak_weekday}")
+            st.markdown("- **Sample Emails:**")
+            for sample in subcat_df["Body.TextBody"].dropna().head(3):
+                st.markdown(f"    - {sample[:200]}{'...' if len(sample) > 200 else ''}")
 
     # =========================================================
     # EXECUTIVE SUMMARY & STRATEGIC INSIGHTS
