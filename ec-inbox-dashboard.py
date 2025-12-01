@@ -87,9 +87,9 @@ if uploaded_file:
     st.subheader("📈 Executive KPIs")
     k1, k2, k3, k4 = st.columns(4)
     k1.metric("Total Emails", total_volume)
-    k2.metric("Automation %", f"{pct_chatbot:.1f}%")
-    k3.metric("Hours Saved", f"{hours_saved:.1f}")
-    k4.metric("FTE Savings", f"{fte_saved:.2f}")
+    k2.metric("Potential Automation %", f"{pct_chatbot:.1f}%")
+    k3.metric("Potential Hours Saved", f"{hours_saved:.1f}")
+    k4.metric("Potential FTE Savings", f"{fte_saved:.2f}")
 
     # =========================================================
     # TREND ANALYSIS
@@ -135,7 +135,7 @@ if uploaded_file:
         peak_hour_cat = cat_df.groupby("Hour").size().idxmax()
         peak_weekday_cat = cat_df.groupby("Weekday").size().idxmax()
 
-        with st.expander(f"{cat} — {total_cat} emails | {pct_chatbot_cat:.1f}% automated"):
+        with st.expander(f"{cat} — {total_cat} emails | {pct_chatbot_cat:.1f}% automated potential"):
             st.markdown(f"**Peak Hour:** {peak_hour_cat}:00")
             st.markdown(f"**Peak Weekday:** {peak_weekday_cat}")
 
@@ -146,7 +146,7 @@ if uploaded_file:
                 chatbot_subcat = subcat_df[subcat_df["Chatbot_Addressable"] == "Yes"].shape[0]
                 pct_chatbot_subcat = (chatbot_subcat / total_subcat * 100) if total_subcat > 0 else 0
 
-                with st.expander(f"▶ {subcat} — {total_subcat} emails | {pct_chatbot_subcat:.1f}% automated"):
+                with st.expander(f"▶ {subcat} — {total_subcat} emails | {pct_chatbot_subcat:.1f}% automated potential"):
                     peak_hour_subcat = subcat_df.groupby("Hour").size().idxmax()
                     peak_weekday_subcat = subcat_df.groupby("Weekday").size().idxmax()
                     st.markdown(f"**Peak Hour:** {peak_hour_subcat}:00")
@@ -160,7 +160,7 @@ if uploaded_file:
                             chatbot_subsub = subsub_df[subsub_df["Chatbot_Addressable"] == "Yes"].shape[0]
                             pct_chatbot_subsub = (chatbot_subsub / total_subsub * 100) if total_subsub > 0 else 0
 
-                            with st.expander(f"→ {subsub} — {total_subsub} emails | {pct_chatbot_subsub:.1f}% automated"):
+                            with st.expander(f"→ {subsub} — {total_subsub} emails | {pct_chatbot_subsub:.1f}% automated potential"):
                                 st.markdown("**Sample Emails:**")
                                 for sample in subsub_df["Body.TextBody"].head(5):
                                     st.markdown(f"- {sample[:200]}{'...' if len(sample) > 200 else ''}")
