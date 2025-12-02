@@ -83,13 +83,13 @@ if uploaded_file:
     avg_per_month = round(total_volume / months_range, 2)
 
     # ================= Titles for Clarity =================
-    st.markdown("##### Volume Metrics")
+    st.markdown("###### **Volume Metrics**")
     k1, k5, k6 = st.columns(3)
     k1.metric("📧 Total Emails", f"{total_volume:,}")
     k5.metric("📅 Avg Emails per Day", f"{avg_per_day}")
     k6.metric("🗓 Avg Emails per Month", f"{avg_per_month}")
 
-    st.markdown("##### Automation Efficiency")
+    st.markdown("###### **Automation Efficiency**")
     k2, k3, k4 = st.columns(3)
     k2.metric("⚙️ Automation Potential", f"{pct_chatbot:.1f}%")
     k3.metric("⏳ Estimated Hours Saved", f"{hours_saved:.1f}")
