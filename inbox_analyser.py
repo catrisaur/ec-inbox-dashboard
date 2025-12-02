@@ -158,11 +158,11 @@ CATEGORY_MAP = {
 # =================================================================
 COMPILED_MAP = {}
 
-for cat, subcats in CATEGORY_MAP:
+for cat, subcats in CATEGORY_MAP.items():
     COMPILED_MAP[cat] = {}
     if not isinstance(subcats, dict):
         continue  # skip if subcats is not a dictionary
-    for sub, strengths in subcats:
+    for sub, strengths in subcats.items():
         if not isinstance(strengths, dict):
             continue
         COMPILED_MAP[cat][sub] = {
@@ -178,8 +178,8 @@ def map_category(text):
     best = None
     best_score = 0
 
-    for cat, subcats in COMPILED_MAP:
-        for sub, patterns in subcats:
+    for cat, subcats in COMPILED_MAP.items():
+        for sub, patterns in subcats.items():
             strong_hits = sum(bool(p.search(text)) for p in patterns["strong"])
             weak_hits = sum(bool(p.search(text)) for p in patterns["weak"])
 
@@ -257,7 +257,7 @@ PATTERNS = {
 def compute_score(subject, body):
     text = clean_text_chatbot(subject + " " + body)
     score = 0
-    for group, data in PATTERNS:
+    for group, data in PATTERNS.items():
         weight = data["weight"]
         for pat in data["patterns"]:
             if re.search(pat, text):
