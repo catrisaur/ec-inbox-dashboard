@@ -105,7 +105,7 @@ if uploaded_file:
     weekday_hour = filtered_df.groupby(["Weekday", "Hour"]).size().reset_index(name="Count")
     fig_heat = px.density_heatmap(
         weekday_hour, x="Hour", y="Weekday", z="Count", title="Email Volume by Hour & Weekday",
-        color_continuous_scale="reds"
+        color_continuous_scale="blues"
     )
     st.plotly_chart(fig_heat, use_container_width=True)
 
@@ -133,7 +133,7 @@ if uploaded_file:
         path=["Category", "Sub-Category"],  # Hierarchical levels
         values="Count",
         color="Category",
-        color_discrete_sequence=px.colors.sequential.Reds, # Red theme
+        color_discrete_sequence=px.colors.sequential.Blues, # Blue theme
         title="Category and Sub-Category Distribution"
     )
 
