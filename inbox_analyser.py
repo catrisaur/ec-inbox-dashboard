@@ -153,35 +153,27 @@ CATEGORY_MAP = {
 }
 
 
-# =================================================================
-# Compile regex patterns safely
-# =================================================================
-COMPILED_MAP = {}
-
-for cat, subcats in CATEGORY_MAP.items():
-    COMPILED_MAP[cat] = {}
-    if not isinstance(subcats, dict):
-        continue  # skip if subcats is not a dictionary
-    for sub, strengths in subcats.items():
-        if not isinstance(strengths, dict):
-            continue
-        COMPILED_MAP[cat][sub] = {
-            "strong": [re.compile(p, re.IGNORECASE) for p in strengths.get("strong", [])],
-            "weak": [re.compile(p, re.IGNORECASE) for p in strengths.get("weak", [])],
+# Compile patterns
+COMPILED_MAP = {
+    cat: {
+        sub: {
+            "strong": [re.compile(p, re.IGNORECASE) for p in strengths["strong"]],
+            "weak": [re.compile(p, re.IGNORECASE) for p in strengths["weak"]],
         }
+        for sub, strengths in subcats.items()
+    }
+    for cat, subcats in CATEGORY_MAP.items()
+}
 
-# =================================================================
-# Map category function
-# =================================================================
 def map_category(text):
     text = clean_text_basic(text)
     best = None
     best_score = 0
 
     for cat, subcats in COMPILED_MAP.items():
-        for sub, patterns in subcats.items():
-            strong_hits = sum(bool(p.search(text)) for p in patterns["strong"])
-            weak_hits = sum(bool(p.search(text)) for p in patterns["weak"])
+        for sub, strengths in subcats.items():
+            strong_hits = sum(bool(p.search(text)) for p in strengths["strong"])
+            weak_hits = sum(bool(p.search(text)) for p in strengths["weak"])
 
             score = strong_hits * 3 + weak_hits
             if score > best_score:
@@ -194,9 +186,6 @@ def map_category(text):
     cat, sub, label = best
     return cat, sub, label, min(1, best_score / 5)
 
-# =================================================================
-# Apply category mapping to DataFrame
-# =================================================================
 def apply_category_mapping(df):
     mapped = df["Body.TextBody"].apply(map_category)
     df["Category"] = mapped.apply(lambda x: x[0])
@@ -204,7 +193,6 @@ def apply_category_mapping(df):
     df["Sub-Sub-Category"] = mapped.apply(lambda x: x[2])
     df["Confidence"] = mapped.apply(lambda x: x[3])
     return df
-
 
 # =================================================================
 # 5. CHATBOT ADDRESSABILITY ENGINE
