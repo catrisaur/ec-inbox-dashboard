@@ -19,7 +19,7 @@ st.caption("Operational intelligence for email volumes, automation potential, an
 @st.cache_data
 def load_file():
     # Replace with your actual file path or cloud URL
-    filepath = "data/ECInbox_Analysis_20251202.xlsx"  # Example path
+    filepath = "ECInbox_Analysis_20251202.xlsx"  # Example path
     return pd.read_excel(filepath)
 
 # Load dataset
