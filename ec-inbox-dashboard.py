@@ -329,7 +329,7 @@ def generate_ai_insights(subject, body):
             Email content: {text}
             """
             response = openai.chat.completions.create(
-                model="gpt-4",
+                model="gpt-4o",
                 messages=[
                     {"role": "system", "content": "You are a compliance expert."},
                     {"role": "user", "content": prompt}
