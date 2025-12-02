@@ -14,24 +14,24 @@ st.title("📊 **E&C Inbox Dashboard**")
 st.caption("Operational intelligence for email volumes, automation potential, and efficiency gains.")
 
 # =========================================================
-# FILE UPLOAD
+# LOAD FIXED DATASET AUTOMATICALLY
 # =========================================================
-uploaded_file = st.file_uploader("📂 Upload your dataset (Excel or CSV)", type=["xlsx", "xls", "csv"])
-
 @st.cache_data
-def load_file(file):
-    return pd.read_csv(file) if file.name.endswith(".csv") else pd.read_excel(file)
+def load_file():
+    # Replace with your actual file path or cloud URL
+    filepath = "data/ECInbox_Analysis_20251202.xlsx"  # Example path
+    return pd.read_excel(filepath)
 
-if uploaded_file:
-    df = load_file(uploaded_file)
-    st.success("✅ Data loaded successfully")
+# Load dataset
+df = load_file()
+st.success("✅ Data loaded successfully from fixed source")
 
-    # Validate schema
-    required_cols = ["DateTimeReceived", "Category", "Sub-Category", "Sub-Sub-Category", "Chatbot_Addressable", "Body.TextBody"]
-    missing = [c for c in required_cols if c not in df.columns]
-    if missing:
-        st.error(f"❌ Missing required columns: {missing}")
-        st.stop()
+# Validate schema
+required_cols = ["DateTimeReceived", "Category", "Sub-Category", "Sub-Sub-Category", "Chatbot_Addressable", "Body.TextBody"]
+missing = [c for c in required_cols if c not in df.columns]
+if missing:
+    st.error(f"❌ Missing required columns: {missing}")
+    st.stop()
 
     # =========================================================
     # CLEAN DATETIME
@@ -195,7 +195,7 @@ if uploaded_file:
         st.dataframe(auto_summary, use_container_width=True)
 
         # Show sample phrases from subjects for chatbot script design
-        st.markdown("#### 🗂 **Common Request Patterns (Sample Phrases)**")
+        st.markdown("#### 🗂 **Common Email Patterns**")
         sample_subjects = chatbot_emails["Subject"].dropna().head(10).tolist()
         st.write("Examples of requests that can be automated:")
         for subj in sample_subjects:
@@ -208,6 +208,7 @@ if uploaded_file:
             color_discrete_sequence=px.colors.qualitative.Set2
         )
         st.plotly_chart(fig_auto, use_container_width=True)
+
 
         # Insight text
         st.markdown("""
