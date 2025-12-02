@@ -328,7 +328,7 @@ def generate_ai_insights(subject, body):
             Suggest risk level (Low, Medium, High) and recommended action.
             Email content: {text}
             """
-            response = openai.ChatCompletion.create(
+            response = openai.chat.completions.create(
                 model="gpt-4",
                 messages=[
                     {"role": "system", "content": "You are a compliance expert."},
