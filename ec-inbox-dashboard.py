@@ -134,14 +134,6 @@ ax.imshow(wc, interpolation='bilinear')
 ax.axis("off")
 st.pyplot(fig_wc)
 
-# Top bigrams
-bigrams = [" ".join(pair) for pair in zip(words, words[1:])]
-bigram_counts = Counter(bigrams).most_common(20)
-bigram_df = pd.DataFrame(bigram_counts, columns=["Phrase", "Frequency"])
-fig_bigram = px.bar(bigram_df, x="Frequency", y="Phrase", orientation="h",
-                    color="Frequency", color_continuous_scale="Reds",
-                    title="Top Two-Word Phrases")
-st.plotly_chart(fig_bigram, use_container_width=True)
 st.divider()
 
 # ------------------- AUTOMATION-READY EMAILS -------------------
