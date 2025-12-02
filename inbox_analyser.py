@@ -106,7 +106,7 @@ CATEGORY_MAP = {
         },
         "Third-Party Due Diligence / Screening": {
             "strong": [r"dow jones", r"\basam\b", r"screening", r"third[- ]party", r"due diligence", r"kyc",
-                       r"background check", r"supplier audit", r"screening request", r"due diligence", r"diligence screening"],
+                       r"background check", r"supplier audit", r"screening request", r"due diligence", r"diligence screening", r"supplier background", r"vendor check"],
             "weak": []
         },
         "Charitable Donations, Sponsorship & Political Contributions": {
