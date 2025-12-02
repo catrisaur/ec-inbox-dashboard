@@ -7,6 +7,32 @@ import re
 from wordcloud import WordCloud
 import matplotlib.pyplot as plt
 
+import streamlit as st
+import inbox_analyser as engine
+
+st.title("📬 E&C Inbox Dashboard")
+
+uploaded = st.file_uploader("Upload Executive Inbox File", type=["xlsx"])
+
+if uploaded:
+    df = engine.run_full_pipeline(uploaded)
+
+    st.success("Dataset cleaned and processed successfully!")
+
+    # Show dataframe
+    st.dataframe(df)
+
+    # Show visuals
+    st.subheader("📈 Monthly Trend")
+    st.pyplot(engine.plot_monthly(df))
+
+    st.subheader("🤖 Chatbot Addressability")
+    st.pyplot(engine.plot_chatbot(df))
+
+    # Export
+    filename = engine.export(df)
+    st.download_button("Download Cleaned Excel", data=open(filename, "rb"), file_name=filename)
+
 # ------------------- PAGE CONFIG -------------------
 st.set_page_config(page_title="E&C Inbox Dashboard", layout="wide")
 st.title("📊 **E&C Inbox Dashboard**")
