@@ -310,6 +310,80 @@ def plot_chatbot(df):
     ax.set_title("🤖 Chatbot Addressability Breakdown")
     return fig
 
+# ============================================================
+# 9. AI SUMMARISATION & INSIGHTS ENGINE
+# ============================================================
+
+import openai
+
+# Load your API key securely (Streamlit secrets or environment variables)
+openai.api_key = "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"
+
+def generate_ai_insights(email_text):
+    """
+    Summarize email and provide compliance insights using GPT.
+    """
+    if not email_text.strip():
+        return {"summary": "", "insights": "", "risk_level": ""}
+
+    prompt = f"""
+    You are an Ethics & Compliance assistant.
+    Summarize this email in 2 sentences.
+    Identify any compliance-related topics (ABAC, COI, Sanctions, Data Protection, IPT).
+    Suggest risk level (Low, Medium, High) and recommended action.
+    Email content: {email_text}
+    """
+
+    response = openai.ChatCompletion.create(
+        model="gpt-4",
+        messages=[
+            {"role": "system", "content": "You are a compliance expert."},
+            {"role": "user", "content": prompt}
+        ],
+        temperature=0.3
+    )
+
+    output = response.choices[0].message["content"]
+
+    # Parse output into structured fields (simple heuristic)
+    summary = output.split("Summary:")[-1].split("Insights:")[0].strip() if "Summary:" in output else output
+    insights = output.split("Insights:")[-1].split("Risk:")[0].strip() if "Insights:" in output else ""
+    risk = output.split("Risk:")[-1].strip() if "Risk:" in output else ""
+
+    return {"summary": summary, "insights": insights, "risk_level": risk}
+
+
+def apply_ai_insights(df):
+    """
+    Apply AI summarization and insights to each email row.
+    """
+    summaries, insights, risks = [], [], []
+
+    for _, row in df.iterrows():
+        text = f"{row['Subject']} {row['Body.TextBody']}"
+        ai_result = generate_ai_insights(text)
+        summaries.append(ai_result["summary"])
+        insights.append(ai_result["insights"])
+        risks.append(ai_result["risk_level"])
+
+    df["AI_Summary"] = summaries
+    df["AI_Insights"] = insights
+    df["AI_Risk_Level"] = risks
+    return df
+
+
+# ============================================================
+# 8. MAIN PIPELINE FUNCTION (USED IN STREAMLIT)
+# ============================================================
+
+def run_full_pipeline(filepath):
+    df = load_data(filepath)
+    df = preprocess(df)
+    df = apply_category_mapping(df)
+    df = apply_chatbot(df)
+    df = apply_ai_insights(df)   # <--- Add AI insights here
+    return df
+
 
 # =================================================================
 # 7. EXPORT
@@ -319,15 +393,3 @@ def export(df):
     filename = f"ECInbox_Analysis_{datetime.today().strftime('%Y%m%d')}.xlsx"
     df.to_excel(filename, index=False)
     return filename
-
-
-# =================================================================
-# 8. MAIN PIPELINE FUNCTION (USED IN STREAMLIT)
-# =================================================================
-
-def run_full_pipeline(filepath):
-    df = load_data(filepath)
-    df = preprocess(df)
-    df = apply_category_mapping(df)
-    df = apply_chatbot(df)
-    return df
