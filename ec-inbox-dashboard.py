@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 import io
 from inbox_analyser import preprocess, load_data, clean_datetime, clean_text_basic, clean_text_chatbot
 import sys
-import openai
+import gemini
 
 # ------------------- PAGE CONFIG -------------------
 st.set_page_config(page_title="E&C Inbox Dashboard", layout="wide")
@@ -306,11 +306,13 @@ st.caption("Dashboard generated: " + datetime.now().strftime("%Y-%m-%d %H:%M:%S"
 
 # ------------------- AI INSIGHTS (GENERAL + ACTIONABLE) -------------------
 try:
-    import openai
-    OPENAI_AVAILABLE = True
+    import gemini
+    GEMINI_AVAILABLE = True
 except ModuleNotFoundError:
-    OPENAI_AVAILABLE = False
-    st.warning("OpenAI module not found — AI insights will be mocked.")
+    GEMINI_AVAILABLE = False
+    st.warning("Gemini module not found — AI insights will be mocked.")
+
+
 
 def generate_ai_insights_batch(subjects, bodies):
     """
@@ -321,9 +323,9 @@ def generate_ai_insights_batch(subjects, bodies):
     if not text.strip():
         return {"summary": "", "insights": "", "risk": ""}
 
-    if OPENAI_AVAILABLE:
+    if GEMINI_AVAILABLE:
         try:
-            openai.api_key = st.secrets["OPENAI_API_KEY"]
+            gemini.api_key = st.secrets["GEMINI_API_KEY"]
             prompt = f"""
             You are an Ethics & Compliance assistant.
             Summarize the following emails to provide a high-level view, highlighting:
@@ -335,7 +337,7 @@ def generate_ai_insights_batch(subjects, bodies):
             {text}
             """
 
-            response = openai.chat.completions.create(
+            response = gemini.chat.completions.create(
                 model="gpt-4o",
                 messages=[
                     {"role": "system", "content": "You are a compliance expert."},
