@@ -135,8 +135,7 @@ if uploaded_file:
         path=["Category", "Sub-Category"],  # Hierarchical levels
         values="Count",
         color="Category",
-        color_discrete_sequence=px.colors.sequential.Reds,  # Red theme
-        title="Treemap of Categories and Sub-Categories"
+        color_discrete_sequence=px.colors.sequential.Reds  # Red theme
     )
 
     fig_treemap.update_traces(root_color="white")  # White background for root
