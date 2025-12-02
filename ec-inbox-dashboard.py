@@ -106,7 +106,7 @@ st.plotly_chart(fig_month, use_container_width=True)
 # Heatmap: Hour vs Weekday
 heat_df = filtered_df.groupby(["Weekday", "Hour"]).size().reset_index(name="Count")
 fig_heat = px.density_heatmap(heat_df, x="Hour", y="Weekday", z="Count",
-                              title="Email Volume by Hour & Weekday", color_continuous_scale="Reds")
+                              title="Email Volume by Hour & Weekday", color_continuous_scale="Blues")
 st.plotly_chart(fig_heat, use_container_width=True)
 st.divider()
 
@@ -116,13 +116,13 @@ st.divider()
 st.markdown("### 📂 **Category Insights**")
 cat_counts = filtered_df.groupby("Category").size().reset_index(name="Count").sort_values("Count", ascending=False)
 fig_cat = px.bar(cat_counts, x="Count", y="Category", orientation="h", color="Count",
-                 color_continuous_scale=px.colors.sequential.Reds, title="Volume by Category")
+                 color_continuous_scale=px.colors.sequential.Blues, title="Volume by Category")
 st.plotly_chart(fig_cat, use_container_width=True)
 
 # Treemap: Category & Sub-Category
 treemap_df = filtered_df.groupby(["Category", "Sub-Category"]).size().reset_index(name="Count")
 fig_tree = px.treemap(treemap_df, path=["Category", "Sub-Category"], values="Count", color="Category",
-                      color_discrete_sequence=px.colors.sequential.Reds, title="Category & Sub-Category Distribution")
+                      color_discrete_sequence=px.colors.sequential.Blues, title="Category & Sub-Category Distribution")
 fig_tree.update_traces(root_color="white")
 st.plotly_chart(fig_tree, use_container_width=True)
 st.divider()
@@ -153,7 +153,7 @@ bigrams = [" ".join(pair) for pair in zip(words, words[1:])]
 bigram_counts = Counter(bigrams).most_common(20)
 bigram_df = pd.DataFrame(bigram_counts, columns=["Phrase", "Frequency"])
 fig_bigram = px.bar(bigram_df, x="Frequency", y="Phrase", orientation="h",
-                    color="Frequency", color_continuous_scale="Reds",
+                    color="Frequency", color_continuous_scale="Blues",
                     title="Top Two-Word Phrases")
 st.plotly_chart(fig_bigram, use_container_width=True)
 st.divider()
