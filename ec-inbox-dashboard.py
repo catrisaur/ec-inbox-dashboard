@@ -121,6 +121,28 @@ if uploaded_file:
     )
     st.plotly_chart(fig_cat, use_container_width=True)
 
+    
+    # =========================================================
+    # TREEMAP VISUALISATION — CATEGORY DISTRIBUTION
+    # =========================================================
+    st.subheader("📦 Treemap: Category Distribution")
+
+    # Prepare data for treemap
+    treemap_df = filtered_df.groupby(["Category", "Sub-Category"]).size().reset_index(name="Count")
+
+    fig_treemap = px.treemap(
+        treemap_df,
+        path=["Category", "Sub-Category"],  # Hierarchical levels
+        values="Count",
+        color="Category",
+        color_discrete_sequence=px.colors.sequential.Reds,  # Red theme
+        title="Treemap of Categories and Sub-Categories"
+    )
+
+    fig_treemap.update_traces(root_color="white")  # White background for root
+    st.plotly_chart(fig_treemap, use_container_width=True)
+
+
     # =========================================================
     # SUB-CATEGORY TABLE — EXECUTIVE VIEW
     # =========================================================
