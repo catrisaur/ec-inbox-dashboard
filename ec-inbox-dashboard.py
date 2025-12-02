@@ -8,6 +8,7 @@ import re
 from wordcloud import WordCloud
 import matplotlib.pyplot as plt
 import io
+from inbox_analyser import preprocess, load_data, clean_datetime, clean_text_basic, clean_text_chatbot
 import sys
 
 # ------------------- PAGE CONFIG -------------------
@@ -80,8 +81,8 @@ def fallback_process(df):
     return df
 
 # ------------------- UPLOAD OR LOAD FIXED FILE -------------------
-uploaded = st.file_uploader("Upload Executive Inbox File (Excel)", type=["xlsx", "xls"])
-use_default_button = st.checkbox("Use built-in example dataset if available", value=False)
+uploaded = st.file_uploader("Upload Inbox File (Excel)", type=["xlsx", "xls"])
+use_default_button = st.checkbox("Use built-in dataset if available (last updated 2025-12-02)", value=False)
 
 df = None
 if uploaded:
