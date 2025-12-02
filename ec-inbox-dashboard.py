@@ -125,8 +125,6 @@ if uploaded_file:
     # =========================================================
     # TREEMAP VISUALISATION — CATEGORY DISTRIBUTION
     # =========================================================
-    st.subheader("📦 Treemap: Category Distribution")
-
     # Prepare data for treemap
     treemap_df = filtered_df.groupby(["Category", "Sub-Category"]).size().reset_index(name="Count")
 
@@ -135,7 +133,8 @@ if uploaded_file:
         path=["Category", "Sub-Category"],  # Hierarchical levels
         values="Count",
         color="Category",
-        color_discrete_sequence=px.colors.sequential.Reds  # Red theme
+        color_discrete_sequence=px.colors.sequential.Reds, # Red theme
+        title="Category and Sub-Category Distribution"
     )
 
     fig_treemap.update_traces(root_color="white")  # White background for root
