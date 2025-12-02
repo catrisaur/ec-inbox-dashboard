@@ -317,7 +317,7 @@ def plot_chatbot(df):
 import openai
 
 # Load your API key securely (Streamlit secrets or environment variables)
-openai.api_key = st.secrets["OPENAI_API_KEY"]
+openai.api_key = "OPENAI_API_KEY"
 
 def generate_ai_insights(email_text):
     """
@@ -370,6 +370,7 @@ def apply_ai_insights(df):
     df["AI_Insights"] = insights
     df["AI_Risk_Level"] = risks
     return df
+
 
 # ============================================================
 # 8. MAIN PIPELINE FUNCTION (USED IN STREAMLIT)
