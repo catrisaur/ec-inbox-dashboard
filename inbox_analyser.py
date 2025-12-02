@@ -152,7 +152,6 @@ CATEGORY_MAP = {
     }
 }
 
-
 # Compile patterns
 COMPILED_MAP = {
     cat: {
