@@ -317,7 +317,7 @@ def plot_chatbot(df):
 import openai
 
 # Load your API key securely (Streamlit secrets or environment variables)
-openai.api_key = "OPENAI_API_KEY"
+openai.api_key = "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"
 
 def generate_ai_insights(email_text):
     """
