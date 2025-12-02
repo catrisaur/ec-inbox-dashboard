@@ -349,7 +349,7 @@ def generate_ai_insights(subject, body):
         return {"summary": text[:75]+"...", "insights": "AI insights unavailable.", "risk": "Unknown"}
 
 # Apply AI insights for filtered_df (limit for performance)
-st.markdown("### 🤖 Sample AI Insights for Emails")
+st.markdown("### 🤖 Sample AI Insights")
 sample_emails = filtered_df.head(5)
 ai_rows = []
 for idx, row in sample_emails.iterrows():
