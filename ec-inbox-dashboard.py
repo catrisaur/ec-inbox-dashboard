@@ -80,6 +80,18 @@ if uploaded_file:
     k3.metric("⏳ Hours Saved", f"{hours_saved:.1f}")
     k4.metric("👥 FTE Savings", f"{fte_saved:.2f}")
 
+    # Calculate averages
+    days_range = (filtered_df["DateTimeReceived"].max() - filtered_df["DateTimeReceived"].min()).days + 1
+    avg_per_day = round(total_volume / days_range, 2)
+
+    months_range = len(filtered_df["Month"].unique())
+    avg_per_month = round(total_volume / months_range, 2)
+
+    # Display in KPI section
+    k5, k6 = st.columns(2)
+    k5.metric("📅 Avg Emails per Day", f"{avg_per_day}")
+    k6.metric("🗓 Avg Emails per Month", f"{avg_per_month}")
+
     st.divider()
 
     # =========================================================
