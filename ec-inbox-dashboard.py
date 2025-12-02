@@ -77,84 +77,119 @@ k6.metric("👥 FTE Saved", f"{fte_saved:.2f}")
 
 st.divider()
 
-# ------------------- VOLUME TRENDS -------------------
-st.markdown("### 📉 **Email Volume Trends**")
+# ------------------- TABS FOR VISUALISATIONS -------------------
+tabs = st.tabs(["Trends", "Categories", "Automation", "Text Insights", "Strategic Insights"])
 
-# Monthly trend
-monthly = filtered_df.groupby("Month").size().reset_index(name="Count")
-fig_month = px.line(monthly, x="Month", y="Count", markers=True,
-                    title="Monthly Email Volume", color_discrete_sequence=["#EE2536"])
-st.plotly_chart(fig_month, use_container_width=True)
+# ------------------- TRENDS TAB -------------------
+with tabs[0]:
+    st.markdown("### 📉 Email Volume Trends")
 
-# Cumulative emails over time
-cumulative = filtered_df.groupby("Date").size().cumsum().reset_index(name="Cumulative")
-fig_cum = px.line(cumulative, x="Date", y="Cumulative", title="Cumulative Emails Over Time",
-                  color_discrete_sequence=["#FF6B6B"])
-st.plotly_chart(fig_cum, use_container_width=True)
+    # Monthly trend
+    monthly = filtered_df.groupby("Month").size().reset_index(name="Count")
+    fig_month = px.line(monthly, x="Month", y="Count", markers=True,
+                        title="Monthly Email Volume", color_discrete_sequence=["#EE2536"])
+    st.plotly_chart(fig_month, use_container_width=True)
 
-# Heatmap Hour vs Weekday
-heat_df = filtered_df.groupby(["Weekday", "Hour"]).size().reset_index(name="Count")
-fig_heat = px.density_heatmap(heat_df, x="Hour", y="Weekday", z="Count",
-                              title="Email Volume by Hour & Weekday", color_continuous_scale="Reds")
-st.plotly_chart(fig_heat, use_container_width=True)
-st.divider()
+    # Cumulative trend
+    cumulative = filtered_df.groupby("Date").size().cumsum().reset_index(name="Cumulative")
+    fig_cum = px.line(cumulative, x="Date", y="Cumulative",
+                      title="Cumulative Emails Over Time", color_discrete_sequence=["#FF6B6B"])
+    st.plotly_chart(fig_cum, use_container_width=True)
 
-# ------------------- CATEGORY INSIGHTS -------------------
-st.markdown("### 📂 **Category Insights**")
-cat_counts = filtered_df.groupby("Category").size().reset_index(name="Count").sort_values("Count", ascending=False)
-fig_cat = px.bar(cat_counts, x="Count", y="Category", orientation="h", color="Count",
-                 color_continuous_scale=px.colors.sequential.Reds, title="Volume by Category")
-st.plotly_chart(fig_cat, use_container_width=True)
+    # Heatmap Hour vs Weekday
+    heat_df = filtered_df.groupby(["Weekday", "Hour"]).size().reset_index(name="Count")
+    fig_heat = px.density_heatmap(heat_df, x="Hour", y="Weekday", z="Count",
+                                  title="Email Volume by Hour & Weekday", color_continuous_scale="Reds")
+    st.plotly_chart(fig_heat, use_container_width=True)
 
-# Treemap
-treemap_df = filtered_df.groupby(["Category", "Sub-Category"]).size().reset_index(name="Count")
-fig_tree = px.treemap(treemap_df, path=["Category", "Sub-Category"], values="Count", color="Category",
-                      color_discrete_sequence=px.colors.sequential.Reds, title="Category & Sub-Category Distribution")
-fig_tree.update_traces(root_color="white")
-st.plotly_chart(fig_tree, use_container_width=True)
+# ------------------- CATEGORIES TAB -------------------
+with tabs[1]:
+    st.markdown("### 📂 Category Insights")
+    cat_counts = filtered_df.groupby("Category").size().reset_index(name="Count").sort_values("Count", ascending=False)
+    fig_cat = px.bar(cat_counts, x="Count", y="Category", orientation="h", color="Count",
+                     color_continuous_scale=px.colors.sequential.Reds, title="Volume by Category")
+    st.plotly_chart(fig_cat, use_container_width=True)
 
-# Automation potential stacked bar
-auto_df = filtered_df.groupby(["Category", "Chatbot_Addressable"]).size().reset_index(name="Count")
-fig_stack = px.bar(auto_df, x="Category", y="Count", color="Chatbot_Addressable", title="Automation Potential by Category",
-                   color_discrete_map={"Yes":"#EE2536", "No":"#FFC1C1"})
-st.plotly_chart(fig_stack, use_container_width=True)
-st.divider()
+    # Treemap
+    treemap_df = filtered_df.groupby(["Category", "Sub-Category"]).size().reset_index(name="Count")
+    fig_tree = px.treemap(treemap_df, path=["Category", "Sub-Category"], values="Count", color="Category",
+                          color_discrete_sequence=px.colors.sequential.Reds, title="Category & Sub-Category Distribution")
+    fig_tree.update_traces(root_color="white")
+    st.plotly_chart(fig_tree, use_container_width=True)
 
-# ------------------- TOP WORDS / PHRASES -------------------
-st.markdown("### 🗂 **Top Keywords & Bigrams**")
-text_data = " ".join(filtered_df["Subject"].dropna().tolist())
-words = [w for w in re.findall(r'\b\w+\b', text_data.lower())
-         if w not in {"the","and","to","of","in","for","on","at","a","is","with","by","an","be","or"} and len(w) > 2]
+    # Stacked automation potential
+    auto_df = filtered_df.groupby(["Category", "Chatbot_Addressable"]).size().reset_index(name="Count")
+    fig_stack = px.bar(auto_df, x="Category", y="Count", color="Chatbot_Addressable",
+                       title="Automation Potential by Category",
+                       color_discrete_map={"Yes":"#EE2536", "No":"#FFC1C1"})
+    st.plotly_chart(fig_stack, use_container_width=True)
 
-# WordCloud
-wc = WordCloud(width=800, height=400, background_color="white", colormap="Reds").generate(" ".join(words))
-st.markdown("#### WordCloud of Email Subjects")
-fig_wc, ax = plt.subplots(figsize=(12,6))
-ax.imshow(wc, interpolation='bilinear')
-ax.axis("off")
-st.pyplot(fig_wc)
+# ------------------- AUTOMATION TAB -------------------
+with tabs[2]:
+    st.markdown("### 🤖 Automation-Ready Email Types")
+    chatbot_df = filtered_df[filtered_df["Chatbot_Addressable"] == "Yes"]
+    if chatbot_df.empty:
+        st.info("No emails identified as chatbot-addressable in the current filter.")
+    else:
+        auto_summary = chatbot_df.groupby(["Category", "Sub-Category"]).size().reset_index(name="Count").sort_values("Count", ascending=False)
+        st.dataframe(auto_summary, use_container_width=True)
 
-st.divider()
+        # Automation bubble chart
+        bubble_df = filtered_df.groupby("Category").agg(
+            Total=('Category','count'),
+            Automation=('Chatbot_Addressable', lambda x: (x=='Yes').sum())
+        ).reset_index()
+        bubble_df["Automation %"] = bubble_df["Automation"] / bubble_df["Total"] * 100
+        fig_bubble = px.scatter(bubble_df, x="Total", y="Automation %", size="Total", color="Category",
+                                hover_name="Category", title="Automation Potential vs Volume",
+                                color_discrete_sequence=px.colors.qualitative.Set2)
+        st.plotly_chart(fig_bubble, use_container_width=True)
 
-# ------------------- AUTOMATION-READY EMAILS -------------------
-st.markdown("### 🤖 **Automation-Ready Email Types**")
-chatbot_df = filtered_df[filtered_df["Chatbot_Addressable"] == "Yes"]
-if chatbot_df.empty:
-    st.info("No emails identified as chatbot-addressable in the current filter.")
-else:
-    auto_summary = chatbot_df.groupby(["Category", "Sub-Category"]).size().reset_index(name="Count").sort_values("Count", ascending=False)
-    st.dataframe(auto_summary, use_container_width=True)
-    fig_auto = px.bar(auto_summary, x="Count", y="Sub-Category", color="Category", orientation="h",
-                      title="Automation-Ready Email Volume by Sub-Category",
-                      color_discrete_sequence=px.colors.qualitative.Set2)
-    st.plotly_chart(fig_auto, use_container_width=True)
-st.divider()
+        # Top subjects
+        st.markdown("#### Sample Subjects for Chatbot Design")
+        for subj in chatbot_df["Subject"].dropna().head(10):
+            st.write(f"- {subj}")
 
-# ------------------- STRATEGIC INSIGHTS -------------------
-st.markdown("### 📌 **Strategic Recommendations & Insights**")
-top_cat = cat_counts.iloc[0]['Category'] if not cat_counts.empty else "N/A"
-peak_month = monthly.loc[monthly['Count'].idxmax()]['Month'] if len(monthly) else "N/A"
-st.markdown(f"""
+# ------------------- TEXT INSIGHTS TAB -------------------
+with tabs[3]:
+    st.markdown("### 🗂 Top Keywords & Phrases")
+
+    # Words
+    text_data = " ".join(filtered_df["Subject"].dropna().tolist())
+    words = [w for w in re.findall(r'\b\w+\b', text_data.lower())
+             if w not in {"the","and","to","of","in","for","on","at","a","is","with","by","an","be","or"} and len(w) > 2]
+
+    # WordCloud
+    wc = WordCloud(width=800, height=400, background_color="white", colormap="Reds").generate(" ".join(words))
+    fig_wc, ax = plt.subplots(figsize=(12,6))
+    ax.imshow(wc, interpolation='bilinear')
+    ax.axis("off")
+    st.pyplot(fig_wc)
+
+    # Bigrams
+    bigrams = [" ".join(pair) for pair in zip(words, words[1:])]
+    bigram_counts = Counter(bigrams).most_common(20)
+    bigram_df = pd.DataFrame(bigram_counts, columns=["Phrase", "Frequency"])
+    fig_bigram = px.bar(bigram_df, x="Frequency", y="Phrase", orientation="h",
+                        color="Frequency", color_continuous_scale="Reds",
+                        title="Top Two-Word Phrases")
+    st.plotly_chart(fig_bigram, use_container_width=True)
+
+    # Trigrams
+    trigrams = [" ".join(tri) for tri in zip(words, words[1:], words[2:])]
+    trigram_counts = Counter(trigrams).most_common(20)
+    trigram_df = pd.DataFrame(trigram_counts, columns=["Phrase", "Frequency"])
+    fig_trigram = px.bar(trigram_df, x="Frequency", y="Phrase", orientation="h",
+                         color="Frequency", color_continuous_scale="Reds",
+                         title="Top Three-Word Phrases")
+    st.plotly_chart(fig_trigram, use_container_width=True)
+
+# ------------------- STRATEGIC INSIGHTS TAB -------------------
+with tabs[4]:
+    st.markdown("### 📌 Strategic Recommendations & Insights")
+    top_cat = cat_counts.iloc[0]['Category'] if not cat_counts.empty else "N/A"
+    peak_month = monthly.loc[monthly['Count'].idxmax()]['Month'] if len(monthly) else "N/A"
+    st.markdown(f"""
 **Top Category:** `{top_cat}`  
 **Peak Month:** `{peak_month}`  
 
@@ -162,6 +197,7 @@ st.markdown(f"""
 - Focus on high-volume categories for automation opportunities.  
 - Leverage peak workload hours for staffing planning.  
 - Identify compliance-sensitive emails for risk mitigation.  
-- Use top keywords and bigrams to design chatbot intents.  
+- Use top keywords, bigrams, and trigrams to design chatbot intents.  
+- Monitor sub-categories with low automation % but high volume.  
 - Forecast future email volumes for resource planning.
 """)
