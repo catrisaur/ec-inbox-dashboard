@@ -33,9 +33,8 @@ def load_data(filepath: str):
 # =================================================================
 
 def clean_datetime(col):
-    """Parse timestamps, fix wrong formats, remove out-of-range years."""
-    col = pd.to_datetime(col, format="%m/%d/%Y %H:%M", errors="coerce")
-    col = col.fillna(pd.to_datetime(col, errors="coerce"))
+    """Parse timestamps with fallback and clean invalid years."""
+    col = pd.to_datetime(col, errors="coerce")
     col = col.mask((col.dt.year < 2000) | (col.dt.year > 2030))
     return col
 
@@ -66,19 +65,20 @@ def preprocess(df):
     df["DateTimeSent"] = clean_datetime(df["DateTimeSent"])
     df["DateTimeReceived"] = clean_datetime(df["DateTimeReceived"])
 
+    # Remove invalid rows
     df = df[~(df["DateTimeSent"].isna() & df["DateTimeReceived"].isna())]
 
-    # Filter to 2025
+    # Filter to 2025 only
     df = df[df["DateTimeReceived"].dt.year == 2025].copy()
     df.drop_duplicates(inplace=True)
     df.reset_index(drop=True, inplace=True)
 
-    # Remove autoreplies and spam
+    # Remove auto-replies + spam
     exclude_terms = [
         'respuesta automática', 'automatic reply', 'automatische antwort',
         'réponse automatique', 'quarantine', 'undeliverable', 'test'
     ]
-    pattern = re.compile('|'.join(exclude_terms), flags=re.IGNORECASE)
+    pattern = re.compile("|".join(exclude_terms), re.IGNORECASE)
     df = df[~df['Subject'].str.contains(pattern, na=False)].copy()
 
     return df
@@ -91,84 +91,42 @@ def preprocess(df):
 CATEGORY_MAP = {
     "Anti-Bribery and Anti-Corruption (ABAC)": {
         "ISO 37001": {
-            "strong": [r"\biso\s*37001\b", r"\bsurveillance audit\b", r"\banti[- ]bribery standard\b"],
-            "weak": [r"certification", r"compliance standard"]
+            "strong": [r"\biso\s*37001\b", r"surveillance audit", r"anti[- ]bribery"],
+            "weak": ["certification", "compliance standard"]
         },
         "Gifts & Entertainment": {
-            "strong": [r"\bgift\b", r"\bgifts\b", r"\bge\b", r"\bmoon\s*cake\b", r"\bmooncake\b",
-                       r"\bendowment\b", r"formulaire de", r"\breceiving\b", r"\boffering\b",
-                       r"hospitality", r"treat", r"lunch", r"dinner", r"gift card", r"declaration", r"received", r"offered", r"employee offering"],
-            "weak": [r"entertainment", r"meal", r"token", r"cny"]
+            "strong": [r"\bgift\b", r"\bgifts\b", r"hospitality", r"mooncake", r"treat", r"dinner", r"gift card"],
+            "weak": ["token", "entertainment"]
         },
         "ABAC eLearning / Training": {
-            "strong": [r"\babac\b.*(training|elearning)", r"mandatory training", r"translation", r"translations"],
+            "strong": ["abac training", "mandatory training", "elearning"],
             "weak": []
         },
         "Third-Party Due Diligence / Screening": {
-            "strong": [r"dow jones", r"\basam\b", r"screening", r"third[- ]party", r"due diligence", r"kyc",
-                       r"background check", r"supplier audit", r"screening request", r"due diligence", r"diligence screening"],
-            "weak": []
-        },
-        "Charitable Donations, Sponsorship & Political Contributions": {
-            "strong": [r"donation", r"sponsorship", r"csr", r"political contribution", r"charitable giving"],
+            "strong": ["dow jones", "screening", "due diligence", "background check"],
             "weak": []
         }
     },
     "Conflict of Interests (COI)": {
         "COI Declaration": {
-            "strong": [r"\bcoi\b", r"conflict of interest", r"interest declaration"],
-            "weak": [r"family relationship", r"related party"]
-        },
-        "External Appointments": {
-            "strong": [r"external appointment", r"outside employment", r"side job", r"additional role"],
+            "strong": ["conflict of interest", r"\bcoi\b", "interest declaration"],
             "weak": []
         }
     },
-    "Data Protection": {
-        "Data Incident / Breach": {
-            "strong": [r"data breach", r"phishing", r"cyber incident", r"malware", r"ransomware", r"leak of data", r"PII"],
-            "weak": [r"security incident", r"personal data"]
-        },
-        "Data Governance & Classification": {
-            "strong": [r"data classification", r"governance", r"GDPR", r"data handling", r"sensitive information"],
-            "weak": []
-        }
-    },
-    "Interested Person Transactions (IPT)": {
-        "IPT Policies & Procedures": {
-            "strong": [r"\bipt\b policy", r"ipt procedure", r"ipt compliance"],
-            "weak": []
-        },
-        "IPT Portal / System Issues": {
-            "strong": [r"ipt portal", r"ipt system", r"ipt access", r"cannot login", r"cannot access"],
-            "weak": [r"login issue", r"access problem"]
-        },
-        "IPT Refreshers / Training": {
-            "strong": [r"ipt training", r"ipt refresher", r"ipt course"],
-            "weak": []
-        }
-    },
-    "Sanctions": {
-        "Sanction Risk Framework": {
-            "strong": [r"sanctions risk", r"risk assessment", r"compliance check"],
-            "weak": []
-        },
-        "Sanctions Policies & Procedures": {
-            "strong": [r"sanctions procedures", r"sanctions operating", r"sanctions policy", r"review sanctions"],
-            "weak": []
-        }
-    }
 }
 
-# compile patterns
-COMPILED_MAP = {}
-for cat, subcats in CATEGORY_MAP.items():
-    COMPILED_MAP[cat] = {}
-    for sub, strengths in subcats.items():
-        COMPILED_MAP[cat][sub] = {
+
+# Compile patterns
+COMPILED_MAP = {
+    cat: {
+        sub: {
             "strong": [re.compile(p, re.IGNORECASE) for p in strengths["strong"]],
             "weak": [re.compile(p, re.IGNORECASE) for p in strengths["weak"]],
         }
+        for sub, strengths in subcats.items()
+    }
+    for cat, subcats in CATEGORY_MAP.items()
+}
 
 
 def map_category(text):
@@ -210,65 +168,56 @@ PATTERNS = {
     "high_confidence": {
         "weight": 2,
         "patterns": [
-            r"\bhow to\b",
-            r"\breset password\b",
-            r"\blogin issue\b",
-            r"\baccess denied\b",
-            r"\brequest info\b",
-            r"\bsubmit form\b",
-            r"\bupdate profile\b",
-            r"\bcheck status\b",
-            r"\bpassword reset\b",
-            r"\bactivate account\b"
-        ]
+            r"how to",
+            r"reset password",
+            r"login issue",
+            r"access denied",
+            r"submit form",
+            r"check status",
+            r"activate account",
+        ],
     },
     "medium_confidence": {
         "weight": 1,
         "patterns": [
-            r"\bquestion\b",
-            r"\binquiry\b",
-            r"\bclarification\b",
-            r"\bissue\b",
-            r"\bhelp\b",
-            r"\bsupport\b",
-            r"\btroubleshoot\b",
-            r"\bproblem\b"
-        ]
+            r"question",
+            r"inquiry",
+            r"clarification",
+            r"issue",
+            r"help",
+            r"support",
+        ],
     },
     "borderline_human_indicators": {
         "weight": -1,
         "patterns": [
-            r"\bplease advise\b",
-            r"\bneed approval\b",
-            r"\bconfirm\b",
-            r"\brequest approval\b",
-            r"\baction required\b"
-        ]
+            r"please advise",
+            r"need approval",
+            r"confirm",
+            r"request approval",
+        ],
     },
     "human_required": {
         "weight": -2,
         "patterns": [
-            r"\bresignation\b",
-            r"\btermination\b",
-            r"\blegal\b",
-            r"\blitigation\b",
-            r"\bcomplaint\b",
-            r"\bHR sensitive\b",
-            r"\bconfidential\b",
-            r"\bescalation\b"
-        ]
-    }
+            r"resignation",
+            r"legal",
+            r"complaint",
+            r"confidential",
+        ],
+    },
 }
 
 
 def compute_score(subject, body):
     text = clean_text_chatbot(subject + " " + body)
-
     score = 0
+
     for group, data in PATTERNS.items():
-        for pat in data["p"]:
+        weight = data["weight"]
+        for pat in data["patterns"]:
             if re.search(pat, text):
-                score += data["w"]
+                score += weight
 
     return score
 
@@ -315,12 +264,7 @@ def plot_chatbot(df):
     counts = df["Chatbot_Addressable"].value_counts()
 
     fig, ax = plt.subplots(figsize=(6, 6))
-    ax.pie(
-        counts,
-        labels=counts.index,
-        autopct="%1.1f%%",
-        colors=["#EE2536", "#CCCCCC"]
-    )
+    ax.pie(counts, labels=counts.index, autopct="%1.1f%%", colors=["#EE2536", "#CCCCCC"])
     ax.set_title("🤖 Chatbot Addressability Breakdown")
     return fig
 
