@@ -136,7 +136,7 @@ if uploaded_file:
     from collections import Counter
 
     # Combine all email text
-    text_data = " ".join(filtered_df["Body.TextBody"].dropna().tolist())
+    text_data = " ".join(filtered_df["Subject"].dropna().tolist())
     words = re.findall(r'\b\w+\b', text_data.lower())
 
     # Remove common stopwords
