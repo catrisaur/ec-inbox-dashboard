@@ -1,333 +1,304 @@
-# ============================================================
-# 📊 Inbox Data Analysis — Consolidated Engine
-# FULL CLEANING + CATEGORISATION + CHATBOT SCORING + VISUALS
-# Designed for integration with Streamlit
-# ============================================================
-
+# app.py
+import streamlit as st
 import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
-import re
+import plotly.express as px
 from datetime import datetime
+from collections import Counter
+import re
+from wordcloud import WordCloud
+import matplotlib.pyplot as plt
+import io
+from inbox_analyser import preprocess, load_data, clean_datetime, clean_text_basic, clean_text_chatbot
+import sys
 
-sns.set_theme(style="whitegrid")
-PRIMARY_RED = "#EE2536"
+# ------------------- PAGE CONFIG -------------------
+st.set_page_config(page_title="E&C Inbox Dashboard", layout="wide")
+st.title("📊 **E&C Inbox Dashboard**")
+st.caption("Operational intelligence for email volumes, automation potential, and efficiency gains.")
 
-# =================================================================
-# 1. LOAD + VALIDATE
-# =================================================================
+# ------------------- TRY TO IMPORT EXTERNAL ENGINE -------------------
+engine = None
+try:
+    import inbox_analyser as engine  # user-provided module (optional)
+    st.info("Using external analyser: inbox_analyser")
+except Exception:
+    engine = None
+    st.info("External analyser not found — using internal processing fallback")
 
-def load_data(filepath: str):
-    df = pd.read_excel(filepath)
+# ------------------- HELPERS (FALLBACK PROCESSING) -------------------
+REQUIRED_COLS = ["DateTimeReceived", "Subject", "Body.TextBody", "Category", "Sub-Category", "Chatbot_Addressable"]
 
-    required_cols = ['DateTimeSent', 'DateTimeReceived', 'Subject', 'Body.TextBody']
-    missing_cols = [col for col in required_cols if col not in df.columns]
-    if missing_cols:
-        raise ValueError(f"Missing required columns: {missing_cols}")
-
-    return df
-
-
-# =================================================================
-# 2. CLEANING FUNCTIONS
-# =================================================================
-
-def clean_datetime(col):
-    """Parse timestamps with fallback and clean invalid years."""
-    col = pd.to_datetime(col, errors="coerce")
-    col = col.mask((col.dt.year < 2000) | (col.dt.year > 2030))
-    return col
-
-
-def clean_text_basic(t):
-    if pd.isna(t):
-        return ""
-    t = str(t).lower()
-    t = re.sub(r"\s+", " ", t)
-    t = re.sub(r"[^\w\s]", " ", t)
-    return t.strip()
-
-
-def clean_text_chatbot(text):
-    if not isinstance(text, str):
-        return ""
-    text = text.lower()
-    text = re.sub(r"\s+", " ", text)
-    text = re.sub(r"[^a-z0-9@._/%$ -]", "", text)
-    return text.strip()
-
-
-# =================================================================
-# 3. PREPROCESS EXECUTIVE INBOX DATA
-# =================================================================
-
-def preprocess(df):
-    df["DateTimeSent"] = clean_datetime(df["DateTimeSent"])
-    df["DateTimeReceived"] = clean_datetime(df["DateTimeReceived"])
-
-    # Remove invalid rows
-    df = df[~(df["DateTimeSent"].isna() & df["DateTimeReceived"].isna())]
-
-    # Filter to 2025 only
-    df = df[df["DateTimeReceived"].dt.year == 2025].copy()
-    df.drop_duplicates(inplace=True)
-    df.reset_index(drop=True, inplace=True)
-
-    # Remove auto-replies + spam
-    exclude_terms = [
-        'respuesta automática', 'automatic reply', 'automatische antwort',
-        'réponse automatique', 'quarantine', 'undeliverable', 'test'
-    ]
-    pattern = re.compile("|".join(exclude_terms), re.IGNORECASE)
-    df = df[~df['Subject'].str.contains(pattern, na=False)].copy()
-
-    return df
-
-
-# =================================================================
-# 4. CATEGORY MAPPING ENGINE
-# =================================================================
-
-CATEGORY_MAP = {
-    "Anti-Bribery and Anti-Corruption (ABAC)": {
-        "ISO 37001": {
-            "strong": [r"\biso\s*37001\b", r"\baudit\b", r"\banti[- ]bribery\b"],
-            "weak": [r"\bcertification\b", r"\bcompliance\b"]
-        },
-        "Gifts & Entertainment": {
-            "strong": [r"\bgift\b", r"\bgifts\b", r"\bdeclaration\b", r"\boffered\b", r"\breceived\b"],
-            "weak": [r"\bmeal\b", r"\btoken\b", r"\bhospitality\b"]
-        },
-        "ABAC eLearning / Training": {
-            "strong": [r"\babac\b.*(training|elearning)", r"\bmandatory training\b"],
-            "weak": [r"\bprocedures\b"]
-        },
-        "Third-Party Due Diligence / Screening": {
-            "strong": [r"\bdow jones\b", r"\bscreening\b", r"\bthird[- ]party\b", r"\bdue diligence\b"],
-            "weak": [r"\bcheck\b", r"\bmonitoring\b"]
-        },
-        "Charitable Donations, Sponsorship & Political Contributions": {
-            "strong": [r"\bsponsorship\b", r"\bdonation\b", r"\bcharitable\b"],
-            "weak": [r"\bcsr\b"]
-        }
-    },
-    "Conflict of Interests (COI)": {
-        "COI Declaration": {
-            "strong": [r"\bconflict of interest\b", r"\bcoi\b", r"\binterest declaration\b"],
-            "weak": [r"\bfamily relationship\b"]
-        },
-        "External Appointments": {
-            "strong": [r"\bappointment\b", r"\bboard\b", r"\bexternal role\b"],
-            "weak": [r"\badditional role\b"]
-        }
-    },
-    "Data Protection": {
-        "Data Incident / Breach": {
-            "strong": [r"\bdata breach\b", r"\bphishing\b", r"\bransomware\b", r"\bcyber incident\b"],
-            "weak": [r"\bsecurity incident\b", r"\bpersonal data\b"]
-        },
-        "Data Governance & Classification": {
-            "strong": [r"\bdata classification\b", r"\bGDPR\b", r"\bgovernance\b"],
-            "weak": [r"\bsensitive information\b"]
-        }
-    },
-    "Interested Person Transactions (IPT)": {
-        "IPT Policies & Procedures": {
-            "strong": [r"\bipt\b.*policy", r"\bipt\b.*procedure"],
-            "weak": []
-        },
-        "IPT Portal / System Issues": {
-            "strong": [r"\bipt portal\b", r"\bipt system\b", r"\baccess\b"],
-            "weak": [r"\blogin issue\b"]
-        },
-        "IPT Refreshers / Training": {
-            "strong": [r"\bipt training\b", r"\bipt refresher\b"],
-            "weak": []
-        }
-    },
-    "Sanctions": {
-        "Sanction Risk Framework": {
-            "strong": [r"\bsanction\b", r"\brisk assessment\b", r"\bcompliance\b"],
-            "weak": []
-        },
-        "Sanctions Policies & Procedures": {
-            "strong": [r"\bsanctions operating\b", r"\bsanctions policy\b"],
-            "weak": []
-        }
-    }
-}
-
-
-# Compile patterns
-COMPILED_MAP = {
-    cat: {
-        sub: {
-            "strong": [re.compile(p, re.IGNORECASE) for p in strengths["strong"]],
-            "weak": [re.compile(p, re.IGNORECASE) for p in strengths["weak"]],
-        }
-        for sub, strengths in subcats.items()
-    }
-    for cat, subcats in CATEGORY_MAP.items()
-}
-
-
-def map_category(text):
-    text = clean_text_basic(text)
-    best = None
-    best_score = 0
-
-    for cat, subcats in COMPILED_MAP.items():
-        for sub, strengths in subcats.items():
-            strong_hits = sum(bool(p.search(text)) for p in strengths["strong"])
-            weak_hits = sum(bool(p.search(text)) for p in strengths["weak"])
-
-            score = strong_hits * 3 + weak_hits
-            if score > best_score:
-                best_score = score
-                best = (cat, sub, "strong" if strong_hits else "weak")
-
-    if not best:
-        return "Not Detected", "Not Detected", "Not Detected", 0.0
-
-    cat, sub, label = best
-    return cat, sub, label, min(1, best_score / 5)
-
-
-def apply_category_mapping(df):
-    mapped = df["Body.TextBody"].apply(map_category)
-    df["Category"] = mapped.apply(lambda x: x[0])
-    df["Sub-Category"] = mapped.apply(lambda x: x[1])
-    df["Sub-Sub-Category"] = mapped.apply(lambda x: x[2])
-    df["Confidence"] = mapped.apply(lambda x: x[3])
-    return df
-
-
-# =================================================================
-# 5. CHATBOT ADDRESSABILITY ENGINE
-# =================================================================
-
-PATTERNS = {
-    "high_confidence": {
-        "weight": 2,
-        "patterns": [
-            r"how to",
-            r"reset password",
-            r"login issue",
-            r"access denied",
-            r"submit form",
-            r"check status",
-            r"activate account",
-        ],
-    },
-    "medium_confidence": {
-        "weight": 1,
-        "patterns": [
-            r"question",
-            r"inquiry",
-            r"clarification",
-            r"issue",
-            r"help",
-            r"support",
-        ],
-    },
-    "borderline_human_indicators": {
-        "weight": -1,
-        "patterns": [
-            r"please advise",
-            r"need approval",
-            r"confirm",
-            r"request approval",
-        ],
-    },
-    "human_required": {
-        "weight": -2,
-        "patterns": [
-            r"resignation",
-            r"legal",
-            r"complaint",
-            r"confidential",
-        ],
-    },
-}
-
-
-def compute_score(subject, body):
-    text = clean_text_chatbot(subject + " " + body)
-    score = 0
-
-    for group, data in PATTERNS.items():
-        weight = data["weight"]
-        for pat in data["patterns"]:
-            if re.search(pat, text):
-                score += weight
-
-    return score
-
-
-def chatbot_addressability(row):
-    score = compute_score(row["Subject"], row["Body.TextBody"])
-
-    if score >= 2:
-        return "Yes", min(1, score / 4), score
-    elif score <= -1:
-        return "No", 0.1, score
+def safe_read_excel(f):
+    """Read uploaded file-like or filepath into DataFrame (utf-8/engine safe)"""
+    if hasattr(f, "read"):
+        # streamlit InMemoryUploadedFile
+        return pd.read_excel(f)
     else:
-        return "No", 0.3, score
+        return pd.read_excel(f)
 
-
-def apply_chatbot(df):
-    results = df.apply(chatbot_addressability, axis=1)
-    df["Chatbot_Addressable"] = results.apply(lambda x: x[0])
-    df["Chatbot_Confidence"] = results.apply(lambda x: x[1])
-    df["Chatbot_Score"] = results.apply(lambda x: x[2])
+def ensure_cols(df):
+    """If some required columns are missing, create placeholders to avoid crashes."""
+    for c in REQUIRED_COLS:
+        if c not in df.columns:
+            df[c] = pd.NA
     return df
 
+def fallback_process(df):
+    """Basic cleaning + derived columns used by the dashboard — used if engine unavailable."""
+    df = df.copy()
+    # Parse datetime robustly
+    df["DateTimeReceived"] = pd.to_datetime(df.get("DateTimeReceived"), errors="coerce")
+    # If DateTimeReceived missing but DateTimeSent exists, fallback
+    if df["DateTimeReceived"].isna().all() and "DateTimeSent" in df.columns:
+        df["DateTimeReceived"] = pd.to_datetime(df.get("DateTimeSent"), errors="coerce")
 
-# =================================================================
-# 6. VISUALISATIONS (RETURN FIGURES FOR STREAMLIT)
-# =================================================================
+    df = df.dropna(subset=["DateTimeReceived"]).copy()
+    df["Date"] = df["DateTimeReceived"].dt.date
+    df["Month"] = df["DateTimeReceived"].dt.to_period("M").astype(str)
+    df["Hour"] = df["DateTimeReceived"].dt.hour
+    df["Weekday"] = df["DateTimeReceived"].dt.day_name()
 
-def plot_monthly(df):
-    monthly = (
-        df.groupby(df["DateTimeReceived"].dt.to_period("M"))
-        .size().reset_index(name="Count")
-    )
-    monthly["Month"] = monthly["DateTimeReceived"].astype(str)
+    # Normalize Chatbot_Addressable column to "Yes"/"No"
+    if "Chatbot_Addressable" in df.columns:
+        df["Chatbot_Addressable"] = df["Chatbot_Addressable"].astype(str).str.strip().str.title().replace(
+            {"True": "Yes", "False": "No", "Nan": "No", "None": "No", "Na": "No"}
+        )
+    else:
+        df["Chatbot_Addressable"] = "No"
 
-    fig, ax = plt.subplots(figsize=(10, 4))
-    sns.lineplot(data=monthly, x="Month", y="Count", marker='o', color=PRIMARY_RED, ax=ax)
-    ax.set_title("📈 Monthly Email Volume (2025)", fontsize=14)
-    plt.xticks(rotation=45)
-    plt.tight_layout()
-    return fig
+    # Ensure Category/Sub-Category exist
+    if "Category" not in df.columns:
+        df["Category"] = "Not Detected"
+    if "Sub-Category" not in df.columns:
+        df["Sub-Category"] = "Not Detected"
 
+    # Subject safe
+    df["Subject"] = df["Subject"].fillna("").astype(str)
 
-def plot_chatbot(df):
-    counts = df["Chatbot_Addressable"].value_counts()
+    # Subject length for later use
+    df["Subject_Length"] = df["Subject"].str.len()
 
-    fig, ax = plt.subplots(figsize=(6, 6))
-    ax.pie(counts, labels=counts.index, autopct="%1.1f%%", colors=["#EE2536", "#CCCCCC"])
-    ax.set_title("🤖 Chatbot Addressability Breakdown")
-    return fig
-
-
-# =================================================================
-# 7. EXPORT
-# =================================================================
-
-def export(df):
-    filename = f"ECInbox_Analysis_{datetime.today().strftime('%Y%m%d')}.xlsx"
-    df.to_excel(filename, index=False)
-    return filename
-
-
-# =================================================================
-# 8. MAIN PIPELINE FUNCTION (USED IN STREAMLIT)
-# =================================================================
-
-def run_full_pipeline(filepath):
-    df = load_data(filepath)
-    df = preprocess(df)
-    df = apply_category_mapping(df)
-    df = apply_chatbot(df)
     return df
+
+# ------------------- UPLOAD OR LOAD FIXED FILE -------------------
+uploaded = st.file_uploader("Upload Inbox File (Excel)", type=["xlsx", "xls"])
+use_default_button = st.checkbox("Use built-in dataset if available (last updated 2025-12-02)", value=False)
+
+df = None
+if uploaded:
+    try:
+        # If engine available, try to use it (it should accept file-like)
+        if engine is not None:
+            try:
+                df = engine.run_full_pipeline(uploaded)
+            except Exception:
+                # fallback: try path (unlikely for uploaded), else read and process locally
+                df = safe_read_excel(uploaded)
+                df = ensure_cols(df)
+                df = fallback_process(df)
+        else:
+            df = safe_read_excel(uploaded)
+            df = ensure_cols(df)
+            df = fallback_process(df)
+        st.success("Dataset cleaned and processed successfully from upload.")
+    except Exception as e:
+        st.error(f"Failed to load/process uploaded file: {e}")
+        st.stop()
+elif use_default_button:
+    # try to load a default fixed path; adjust path as needed
+    DEFAULT_PATH = "ECInbox_Analysis_20251202.xlsx"
+    try:
+        if engine is not None:
+            try:
+                df = engine.run_full_pipeline(DEFAULT_PATH)
+            except Exception:
+                df = pd.read_excel(DEFAULT_PATH)
+                df = ensure_cols(df)
+                df = fallback_process(df)
+        else:
+            df = pd.read_excel(DEFAULT_PATH)
+            df = ensure_cols(df)
+            df = fallback_process(df)
+        st.success(f"Loaded default dataset: {DEFAULT_PATH}")
+    except FileNotFoundError:
+        st.error(f"Default dataset not found at {DEFAULT_PATH}. Upload a file or change the path.")
+        st.stop()
+else:
+    st.info("Upload a dataset (Excel) or check 'Use built-in dataset' to proceed.")
+    st.stop()
+
+# ------------------- VALIDATE SCHEMA AFTER PROCESSING -------------------
+# Ensure minimal columns present (dashboard expects these)
+df = ensure_cols(df)
+# Derived fields if engine returned them already
+if "DateTimeReceived" not in df.columns:
+    st.error("Processed data missing DateTimeReceived column.")
+    st.stop()
+
+# Recompute derived fields if absent (safe)
+if "Date" not in df.columns or "Month" not in df.columns:
+    df = fallback_process(df)
+
+# ------------------- SIDEBAR FILTERS -------------------
+min_date, max_date = df["DateTimeReceived"].min().date(), df["DateTimeReceived"].max().date()
+st.sidebar.header("🔎 Filters")
+selected_categories = st.sidebar.multiselect("Category", sorted(df["Category"].dropna().unique()))
+selected_subcats = st.sidebar.multiselect("Sub-Category", sorted(df["Sub-Category"].dropna().unique()))
+chatbot_filter = st.sidebar.selectbox("Automation Potential", ["All", "Yes", "No"])
+date_range = st.sidebar.date_input("Date Range", value=[min_date, max_date], min_value=min_date, max_value=max_date)
+
+# Apply filters
+filtered_df = df[(df["DateTimeReceived"].dt.date >= date_range[0]) & (df["DateTimeReceived"].dt.date <= date_range[1])]
+if selected_categories:
+    filtered_df = filtered_df[filtered_df["Category"].isin(selected_categories)]
+if selected_subcats:
+    filtered_df = filtered_df[filtered_df["Sub-Category"].isin(selected_subcats)]
+if chatbot_filter != "All":
+    filtered_df = filtered_df[filtered_df["Chatbot_Addressable"] == chatbot_filter]
+
+if filtered_df.empty:
+    st.warning("⚠ No data matches your filters.")
+    st.stop()
+
+# ------------------- KPI DASHBOARD -------------------
+st.markdown("### 📈 Executive KPIs")
+total_volume = len(filtered_df)
+chatbot_count = (filtered_df["Chatbot_Addressable"] == "Yes").sum()
+pct_chatbot = (chatbot_count / total_volume * 100) if total_volume else 0
+hours_saved = ((total_volume * 4) - (chatbot_count * 0.1)) / 60
+fte_saved = hours_saved / 160
+days_range = (filtered_df["DateTimeReceived"].max() - filtered_df["DateTimeReceived"].min()).days + 1
+avg_per_day = round(total_volume / days_range, 2)
+months_range = len(filtered_df["Month"].unique())
+avg_per_month = round(total_volume / months_range, 2)
+
+k1, k2, k3 = st.columns(3)
+k1.metric("📧 Total Emails", f"{total_volume:,}")
+k2.metric("📅 Avg Emails/Day", f"{avg_per_day}")
+k3.metric("🗓 Avg Emails/Month", f"{avg_per_month}")
+
+k4, k5, k6 = st.columns(3)
+k4.metric("⚙️ Automation Potential", f"{pct_chatbot:.1f}%")
+k5.metric("⏳ Estimated Hours Saved", f"{hours_saved:.1f}")
+k6.metric("👥 Estimated FTE Saved", f"{fte_saved:.2f}")
+
+st.divider()
+
+# ------------------- TABS FOR VISUALISATIONS -------------------
+tabs = st.tabs(["Trends", "Categories", "Automation", "Text Insights", "Strategic Insights"])
+
+# Trends tab
+with tabs[0]:
+    st.markdown("### 📉 Email Volume Trends")
+
+    # Monthly trend
+    monthly = filtered_df.groupby("Month").size().reset_index(name="Count")
+    fig_month = px.line(monthly, x="Month", y="Count", markers=True, title="Monthly Email Volume", color_discrete_sequence=["#EE2536"])
+    st.plotly_chart(fig_month, use_container_width=True)
+
+    # Cumulative trend
+    cumulative = filtered_df.groupby("Date").size().cumsum().reset_index(name="Cumulative")
+    fig_cum = px.line(cumulative, x="Date", y="Cumulative", title="Cumulative Emails Over Time", color_discrete_sequence=["#FF6B6B"])
+    st.plotly_chart(fig_cum, use_container_width=True)
+
+    # Heatmap Hour vs Weekday
+    heat_df = filtered_df.groupby(["Weekday", "Hour"]).size().reset_index(name="Count")
+    # ensure weekday ordering
+    order = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"]
+    heat_df["Weekday"] = pd.Categorical(heat_df["Weekday"], categories=order, ordered=True)
+    fig_heat = px.density_heatmap(heat_df, x="Hour", y="Weekday", z="Count", title="Email Volume by Hour & Weekday", color_continuous_scale="Reds")
+    fig_heat.update_yaxes(categoryorder="array", categoryarray=order)
+    st.plotly_chart(fig_heat, use_container_width=True)
+
+# Categories tab
+with tabs[1]:
+    st.markdown("### 📂 Category Insights")
+    cat_counts = filtered_df.groupby("Category").size().reset_index(name="Count").sort_values("Count", ascending=False)
+    fig_cat = px.bar(cat_counts, x="Count", y="Category", orientation="h", color="Count", color_continuous_scale=px.colors.sequential.Reds, title="Volume by Category")
+    st.plotly_chart(fig_cat, use_container_width=True)
+
+    # Treemap
+    treemap_df = filtered_df.groupby(["Category", "Sub-Category"]).size().reset_index(name="Count")
+    fig_tree = px.treemap(treemap_df, path=["Category", "Sub-Category"], values="Count", color="Category", color_discrete_sequence=px.colors.sequential.Reds, title="Category & Sub-Category Distribution")
+    fig_tree.update_traces(root_color="white")
+    st.plotly_chart(fig_tree, use_container_width=True)
+
+    # Stacked automation potential
+    auto_df = filtered_df.groupby(["Category", "Chatbot_Addressable"]).size().reset_index(name="Count")
+    fig_stack = px.bar(auto_df, x="Category", y="Count", color="Chatbot_Addressable", title="Automation Potential by Category", color_discrete_map={"Yes":"#EE2536", "No":"#FFC1C1"})
+    st.plotly_chart(fig_stack, use_container_width=True)
+
+# Automation tab
+with tabs[2]:
+    st.markdown("### 🤖 Automation-Ready Email Types")
+    chatbot_df = filtered_df[filtered_df["Chatbot_Addressable"] == "Yes"]
+    if chatbot_df.empty:
+        st.info("No emails identified as chatbot-addressable in the current filter.")
+    else:
+        auto_summary = chatbot_df.groupby(["Category", "Sub-Category"]).size().reset_index(name="Count").sort_values("Count", ascending=False)
+        st.dataframe(auto_summary, use_container_width=True)
+
+        # Bubble chart
+        bubble_df = filtered_df.groupby("Category").agg(Total=('Category','count'), Automation=('Chatbot_Addressable', lambda x: (x=='Yes').sum())).reset_index()
+        bubble_df["Automation %"] = bubble_df["Automation"] / bubble_df["Total"] * 100
+        fig_bubble = px.scatter(bubble_df, x="Total", y="Automation %", size="Total", color="Category", hover_name="Category", title="Automation Potential vs Volume", color_discrete_sequence=px.colors.qualitative.Set2)
+        st.plotly_chart(fig_bubble, use_container_width=True)
+
+        # Sample subjects
+        st.markdown("#### Sample Subjects for Chatbot Design")
+        for subj in chatbot_df["Subject"].dropna().head(10):
+            st.write(f"- {subj}")
+
+# Text Insights tab
+with tabs[3]:
+    st.markdown("### 🗂 Top Keywords & Phrases")
+    text_data = " ".join(filtered_df["Subject"].dropna().tolist())
+    stopwords = {"the","and","to","of","in","for","on","at","a","is","with","by","an","be","or","please","hi","dear"}
+    words = [w for w in re.findall(r'\b\w+\b', text_data.lower()) if w not in stopwords and len(w) > 2]
+
+    # WordCloud
+    wc = WordCloud(width=800, height=400, background_color="white", colormap="Reds").generate(" ".join(words))
+    fig_wc, ax = plt.subplots(figsize=(12,6))
+    ax.imshow(wc, interpolation='bilinear')
+    ax.axis("off")
+    st.pyplot(fig_wc)
+
+    # Bigrams & Trigrams
+    bigrams = [" ".join(pair) for pair in zip(words, words[1:])]
+    bigram_counts = Counter(bigrams).most_common(20)
+    bigram_df = pd.DataFrame(bigram_counts, columns=["Phrase", "Frequency"])
+    fig_bigram = px.bar(bigram_df, x="Frequency", y="Phrase", orientation="h", color="Frequency", color_continuous_scale="Reds", title="Top Two-Word Phrases")
+    st.plotly_chart(fig_bigram, use_container_width=True)
+
+    trigrams = [" ".join(tri) for tri in zip(words, words[1:], words[2:])]
+    trigram_counts = Counter(trigrams).most_common(20)
+    trigram_df = pd.DataFrame(trigram_counts, columns=["Phrase", "Frequency"])
+    fig_trigram = px.bar(trigram_df, x="Frequency", y="Phrase", orientation="h", color="Frequency", color_continuous_scale="Reds", title="Top Three-Word Phrases")
+    st.plotly_chart(fig_trigram, use_container_width=True)
+
+# Strategic Insights tab
+with tabs[4]:
+    st.markdown("### 📌 Strategic Recommendations & Insights")
+    top_cat = cat_counts.iloc[0]['Category'] if not cat_counts.empty else "N/A"
+    peak_month = monthly.loc[monthly['Count'].idxmax()]['Month'] if len(monthly) else "N/A"
+    st.markdown(f"""
+**Top Category:** `{top_cat}`  
+**Peak Month:** `{peak_month}`  
+
+✅ **Actionable Insights:**  
+- Focus on high-volume categories for automation opportunities.  
+- Leverage peak workload days/hours for staffing planning.  
+- Identify compliance-sensitive emails for risk mitigation.  
+- Use top keywords, bigrams, and trigrams to design chatbot intents.  
+- Monitor sub-categories with low automation % but high volume.  
+- Forecast next quarter volumes for resource planning.
+""")
+
+st.markdown("---")
+st.header("Export & Save")
+buffer = io.BytesIO()
+filtered_df.to_excel(buffer, index=False, engine="openpyxl")
+buffer.seek(0)
+st.download_button("📥 Download filtered & cleaned dataset (xlsx)", buffer, file_name=f"ECInbox_filtered_{datetime.today().strftime('%Y%m%d')}.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+
+st.caption("Dashboard generated: " + datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
