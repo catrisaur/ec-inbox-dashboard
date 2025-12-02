@@ -172,10 +172,12 @@ avg_per_day = round(total_volume / days_range, 2)
 months_range = len(filtered_df["Month"].unique())
 avg_per_month = round(total_volume / months_range, 2)
 
-k1, k2, k3, k4, k5, k6 = st.columns(6)
+k1, k2, k3 = st.columns(3)
 k1.metric("📧 Total Emails", f"{total_volume:,}")
 k2.metric("📅 Avg Emails/Day", f"{avg_per_day}")
 k3.metric("🗓 Avg Emails/Month", f"{avg_per_month}")
+
+k4, k5, k6 = st.columns(3)
 k4.metric("⚙️ Automation Potential", f"{pct_chatbot:.1f}%")
 k5.metric("⏳ Estimated Hours Saved", f"{hours_saved:.1f}")
 k6.metric("👥 Estimated FTE Saved", f"{fte_saved:.2f}")
