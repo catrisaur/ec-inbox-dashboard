@@ -116,7 +116,7 @@ if uploaded_file:
     category_counts = filtered_df.groupby("Category").size().reset_index(name="Count").sort_values("Count", ascending=False)
     fig_cat = px.bar(
         category_counts, x="Count", y="Category", orientation="h",
-        color="Count", color_continuous_scale=px.colors.sequential.OrRd,
+        color="Count", color_continuous_scale=px.colors.sequential.Blues,
         title="Volume by Category"
     )
     st.plotly_chart(fig_cat, use_container_width=True)
