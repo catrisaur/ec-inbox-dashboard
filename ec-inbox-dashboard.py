@@ -68,12 +68,13 @@ if uploaded_file:
     # KPI DASHBOARD
     # =========================================================
     st.markdown("### 📈 **Executive KPIs**")
+
     total_volume = len(filtered_df)
     chatbot_count = filtered_df["Chatbot_Addressable"].eq("Yes").sum()
     pct_chatbot = (chatbot_count / total_volume * 100) if total_volume else 0
     hours_saved = ((total_volume * 4) - (chatbot_count * 0.1)) / 60
     fte_saved = hours_saved / 160
-    
+
     # Calculate averages
     days_range = (filtered_df["DateTimeReceived"].max() - filtered_df["DateTimeReceived"].min()).days + 1
     avg_per_day = round(total_volume / days_range, 2)
@@ -81,17 +82,21 @@ if uploaded_file:
     months_range = len(filtered_df["Month"].unique())
     avg_per_month = round(total_volume / months_range, 2)
 
+    # ================= Titles for Clarity =================
+    st.markdown("#### 📨 **Volume Metrics**")
     k1, k5, k6 = st.columns(3)
     k1.metric("📧 Total Emails", f"{total_volume:,}")
     k5.metric("📅 Avg Emails per Day", f"{avg_per_day}")
     k6.metric("🗓 Avg Emails per Month", f"{avg_per_month}")
 
+    st.markdown("#### 🤖 **Automation Efficiency**")
     k2, k3, k4 = st.columns(3)
-    k2.metric("🤖 Automation Potential", f"{pct_chatbot:.1f}%")
-    k3.metric("⏳ Hours Saved", f"{hours_saved:.1f}")
-    k4.metric("👥 FTE Savings", f"{fte_saved:.2f}")
+    k2.metric("⚙️ Automation Potential", f"{pct_chatbot:.1f}%")
+    k3.metric("⏳ Estimated Hours Saved", f"{hours_saved:.1f}")
+    k4.metric("👥 Estimated FTE Savings", f"{fte_saved:.2f}")
 
     st.divider()
+
 
     # =========================================================
     # TREND ANALYSIS
