@@ -91,28 +91,73 @@ def preprocess(df):
 CATEGORY_MAP = {
     "Anti-Bribery and Anti-Corruption (ABAC)": {
         "ISO 37001": {
-            "strong": [r"\biso\s*37001\b", r"surveillance audit", r"anti[- ]bribery"],
-            "weak": ["certification", "compliance standard"]
+            "strong": [r"\biso\s*37001\b", r"\bsurveillance audit\b", r"\banti[- ]bribery standard\b"],
+            "weak": [r"certification", r"compliance standard"]
         },
         "Gifts & Entertainment": {
-            "strong": [r"\bgift\b", r"\bgifts\b", r"hospitality", r"mooncake", r"treat", r"dinner", r"gift card"],
-            "weak": ["token", "entertainment"]
+            "strong": [r"\bgift\b", r"\bgifts\b", r"\bge\b", r"\bmoon\s*cake\b", r"\bmooncake\b",
+                       r"\bendowment\b", r"formulaire de", r"\breceiving\b", r"\boffering\b",
+                       r"hospitality", r"treat", r"lunch", r"dinner", r"gift card", r"declaration", r"received", r"offered", r"employee offering"],
+            "weak": [r"entertainment", r"meal", r"token", r"cny"]
         },
         "ABAC eLearning / Training": {
-            "strong": ["abac training", "mandatory training", "elearning"],
+            "strong": [r"\babac\b.*(training|elearning)", r"mandatory training", r"translation", r"translations"],
             "weak": []
         },
         "Third-Party Due Diligence / Screening": {
-            "strong": ["dow jones", "screening", "due diligence", "background check"],
+            "strong": [r"dow jones", r"\basam\b", r"screening", r"third[- ]party", r"due diligence", r"kyc",
+                       r"background check", r"supplier audit", r"screening request", r"due diligence", r"diligence screening"],
+            "weak": []
+        },
+        "Charitable Donations, Sponsorship & Political Contributions": {
+            "strong": [r"donation", r"sponsorship", r"csr", r"political contribution", r"charitable giving"],
             "weak": []
         }
     },
     "Conflict of Interests (COI)": {
         "COI Declaration": {
-            "strong": ["conflict of interest", r"\bcoi\b", "interest declaration"],
+            "strong": [r"\bcoi\b", r"conflict of interest", r"interest declaration"],
+            "weak": [r"family relationship", r"related party"]
+        },
+        "External Appointments": {
+            "strong": [r"external appointment", r"outside employment", r"side job", r"additional role"],
             "weak": []
         }
     },
+    "Data Protection": {
+        "Data Incident / Breach": {
+            "strong": [r"data breach", r"phishing", r"cyber incident", r"malware", r"ransomware", r"leak of data", r"PII"],
+            "weak": [r"security incident", r"personal data"]
+        },
+        "Data Governance & Classification": {
+            "strong": [r"data classification", r"governance", r"GDPR", r"data handling", r"sensitive information"],
+            "weak": []
+        }
+    },
+    "Interested Person Transactions (IPT)": {
+        "IPT Policies & Procedures": {
+            "strong": [r"\bipt\b policy", r"ipt procedure", r"ipt compliance"],
+            "weak": []
+        },
+        "IPT Portal / System Issues": {
+            "strong": [r"ipt portal", r"ipt system", r"ipt access", r"cannot login", r"cannot access"],
+            "weak": [r"login issue", r"access problem"]
+        },
+        "IPT Refreshers / Training": {
+            "strong": [r"ipt training", r"ipt refresher", r"ipt course"],
+            "weak": []
+        }
+    },
+    "Sanctions": {
+        "Sanction Risk Framework": {
+            "strong": [r"sanctions risk", r"risk assessment", r"compliance check"],
+            "weak": []
+        },
+        "Sanctions Policies & Procedures": {
+            "strong": [r"sanctions procedures", r"sanctions operating", r"sanctions policy", r"review sanctions"],
+            "weak": []
+        }
+    }
 }
 
 
