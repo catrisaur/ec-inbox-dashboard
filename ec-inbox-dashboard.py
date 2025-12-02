@@ -323,7 +323,7 @@ def generate_ai_insights(subject, body):
             openai.api_key = st.secrets["OPENAI_API_KEY"]
             prompt = f"""
             You are an Ethics & Compliance assistant.
-            Summarize this email in 1–2 sentences.
+            Provide actionable insights based on the email content.
             Identify any compliance topics (ABAC, COI, Sanctions, Data Protection, IPT).
             Suggest risk level (Low, Medium, High) and recommended action.
             Email content: {text}
@@ -365,4 +365,5 @@ for idx, row in sample_emails.iterrows():
 
 ai_df = pd.DataFrame(ai_rows)
 st.dataframe(ai_df, use_container_width=True)
+
 
