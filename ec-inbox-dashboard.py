@@ -125,18 +125,35 @@ if uploaded_file:
 
     st.divider()
 
+
     # =========================================================
-    # WORD CLOUD FOR KEYWORDS
+    # KEYWORD FREQUENCY BAR CHART (WordCloud Alternative)
     # =========================================================
     st.markdown("### 🗂 **Top Keywords in Emails**")
-    text_data = " ".join(filtered_df["Body.TextBody"].dropna().tolist())
-    wordcloud = WordCloud(width=800, height=400, background_color="white", colormap="Blues").generate(text_data)
-    fig_wc, ax = plt.subplots(figsize=(10, 5))
-    ax.imshow(wordcloud, interpolation="bilinear")
-    ax.axis("off")
-    st.pyplot(fig_wc)
 
-    st.divider()
+    import re
+    from collections import Counter
+
+    # Extract keywords from email body
+    text_data = " ".join(filtered_df["Body.TextBody"].dropna().tolist())
+    words = re.findall(r'\b\w+\b', text_data.lower())
+
+    # Remove common stopwords for clarity
+    stopwords = set(["the", "and", "to", "of", "in", "for", "on", "at", "a", "is", "with", "by", "an", "be", "or"])
+    filtered_words = [w for w in words if w not in stopwords and len(w) > 2]
+
+    # Get top 20 keywords
+    common_words = Counter(filtered_words).most_common(20)
+    keywords_df = pd.DataFrame(common_words, columns=["Keyword", "Frequency"])
+
+    # Plot interactive bar chart
+    fig_keywords = px.bar(
+        keywords_df, x="Frequency", y="Keyword", orientation="h",
+        color="Frequency", color_continuous_scale="Blues",
+        title="Top Keywords in Emails"
+    )
+    st.plotly_chart(fig_keywords, use_container_width=True)
+
 
     # =========================================================
     # ACTIONABLE INSIGHTS
