@@ -304,7 +304,7 @@ st.download_button("📥 Download filtered & cleaned dataset (xlsx)", buffer, fi
 
 st.caption("Dashboard generated: " + datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
 
-# ------------------- AI INSIGHTS -------------------
+# ------------------- AI INSIGHTS (GENERAL + ACTIONABLE) -------------------
 try:
     import openai
     OPENAI_AVAILABLE = True
@@ -312,22 +312,29 @@ except ModuleNotFoundError:
     OPENAI_AVAILABLE = False
     st.warning("OpenAI module not found — AI insights will be mocked.")
 
-def generate_ai_insights(subject, body):
-    """Return AI summary/insights/risk level for a single email"""
-    text = f"{subject} {body}".strip()
-    if not text:
+def generate_ai_insights_batch(subjects, bodies):
+    """
+    Generate AI insights for a batch of emails.
+    Returns one summary/insights/risk level that captures trends and actionable points.
+    """
+    text = "\n".join([f"Subject: {s}\nBody: {b}" for s, b in zip(subjects, bodies)])
+    if not text.strip():
         return {"summary": "", "insights": "", "risk": ""}
-    
+
     if OPENAI_AVAILABLE:
         try:
             openai.api_key = st.secrets["OPENAI_API_KEY"]
             prompt = f"""
             You are an Ethics & Compliance assistant.
-            Provide actionable insights based on the email content.
-            Identify any compliance topics (ABAC, COI, Sanctions, Data Protection, IPT).
-            Suggest risk level (Low, Medium, High) and recommended action.
-            Email content: {text}
+            Summarize the following emails to provide a high-level view, highlighting:
+            - Key compliance topics (ABAC, COI, Sanctions, Data Protection, IPT)
+            - Potential risks and risk levels (Low, Medium, High)
+            - Recommended actionable steps for management or compliance team
+
+            Emails content:
+            {text}
             """
+
             response = openai.chat.completions.create(
                 model="gpt-4o",
                 messages=[
@@ -336,34 +343,36 @@ def generate_ai_insights(subject, body):
                 ],
                 temperature=0.3
             )
+
             output = response.choices[0].message["content"]
-            # parse simple heuristic
-            summary = output.split("Summary:")[-1].split("Insights:")[0].strip() if "Summary:" in output else output
-            insights = output.split("Insights:")[-1].split("Risk:")[0].strip() if "Insights:" in output else ""
+
+            # Simple heuristic parsing
+            summary = output.split("Summary:")[-1].split("Insights:")[0].strip() if "Summary:" in output else ""
+            insights = output.split("Insights:")[-1].split("Risk:")[0].strip() if "Insights:" in output else output
             risk = output.split("Risk:")[-1].strip() if "Risk:" in output else ""
+
             return {"summary": summary, "insights": insights, "risk": risk}
+
         except Exception as e:
             return {"summary": "Error fetching AI insights", "insights": str(e), "risk": ""}
+
     else:
-        # fallback/mock
-        return {"summary": text[:75]+"...", "insights": "AI insights unavailable.", "risk": "Unknown"}
+        # Fallback/mock
+        return {"summary": f"{len(subjects)} emails analyzed...", 
+                "insights": "AI insights unavailable.", 
+                "risk": "Unknown"}
 
-# Apply AI insights for filtered_df (limit for performance)
-st.markdown("### 🤖 AI Insights")
-sample_emails = filtered_df.head(5)
-ai_rows = []
-for idx, row in sample_emails.iterrows():
-    ai_result = generate_ai_insights(row["Subject"], row["Body.TextBody"] if "Body.TextBody" in row else "")
-    ai_rows.append({
-        "Subject": row["Subject"],
-        "Category": row.get("Category", ""),
-        "Sub-Category": row.get("Sub-Category", ""),
-        "AI_Summary": ai_result["summary"],
-        "AI_Insights": ai_result["insights"],
-        "AI_Risk": ai_result["risk"]
-    })
+# Apply AI insights to top N emails for demo/general insights
+st.markdown("### 🤖 AI Insights (High-Level & Actionable)")
+sample_emails = filtered_df.head(10)
+subjects = sample_emails["Subject"].fillna("").tolist()
+bodies = sample_emails.get("Body.TextBody", [""]*len(subjects)).tolist()
 
-ai_df = pd.DataFrame(ai_rows)
-st.dataframe(ai_df, use_container_width=True)
+ai_result = generate_ai_insights_batch(subjects, bodies)
+
+st.markdown(f"**Summary:** {ai_result['summary']}")
+st.markdown(f"**Insights & Recommendations:** {ai_result['insights']}")
+st.markdown(f"**Overall Risk Level:** {ai_result['risk']}")
+
 
 
