@@ -126,33 +126,39 @@ if uploaded_file:
     st.divider()
 
 
+
     # =========================================================
-    # KEYWORD FREQUENCY BAR CHART (WordCloud Alternative)
+    # TOP TWO-WORD PHRASES (BIGRAMS)
     # =========================================================
-    st.markdown("### 🗂 **Top Keywords in Emails**")
+    st.markdown("### 🗂 **Top Two-Word Phrases in Emails**")
 
     import re
     from collections import Counter
 
-    # Extract keywords from email body
+    # Combine all email text
     text_data = " ".join(filtered_df["Body.TextBody"].dropna().tolist())
     words = re.findall(r'\b\w+\b', text_data.lower())
 
-    # Remove common stopwords for clarity
+    # Remove common stopwords
     stopwords = set(["the", "and", "to", "of", "in", "for", "on", "at", "a", "is", "with", "by", "an", "be", "or"])
     filtered_words = [w for w in words if w not in stopwords and len(w) > 2]
 
-    # Get top 20 keywords
-    common_words = Counter(filtered_words).most_common(20)
-    keywords_df = pd.DataFrame(common_words, columns=["Keyword", "Frequency"])
+    # Create bigrams (two-word phrases)
+    bigrams = zip(filtered_words, filtered_words[1:])
+    bigram_phrases = [" ".join(pair) for pair in bigrams]
+
+    # Get top 20 bigrams
+    common_bigrams = Counter(bigram_phrases).most_common(20)
+    bigrams_df = pd.DataFrame(common_bigrams, columns=["Phrase", "Frequency"])
 
     # Plot interactive bar chart
-    fig_keywords = px.bar(
-        keywords_df, x="Frequency", y="Keyword", orientation="h",
+    fig_bigrams = px.bar(
+        bigrams_df, x="Frequency", y="Phrase", orientation="h",
         color="Frequency", color_continuous_scale="Blues",
-        title="Top Keywords in Emails"
+        title="Top Two-Word Phrases in Emails"
     )
-    st.plotly_chart(fig_keywords, use_container_width=True)
+    st.plotly_chart(fig_bigrams, use_container_width=True)
+    st.divider()
 
 
     # =========================================================
