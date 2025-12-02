@@ -86,7 +86,7 @@ if uploaded_file:
     k5.metric("📅 Avg Emails per Day", f"{avg_per_day}")
     k6.metric("🗓 Avg Emails per Month", f"{avg_per_month}")
 
-    k2, k3, k4 = st.columns(3))
+    k2, k3, k4 = st.columns(3)
     k2.metric("🤖 Automation Potential", f"{pct_chatbot:.1f}%")
     k3.metric("⏳ Hours Saved", f"{hours_saved:.1f}")
     k4.metric("👥 FTE Savings", f"{fte_saved:.2f}")
