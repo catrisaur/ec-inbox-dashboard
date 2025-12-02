@@ -10,7 +10,7 @@ import seaborn as sns
 import re
 from datetime import datetime
 import streamlit as st
-# import openai
+import openai
 
 sns.set_theme(style="whitegrid")
 PRIMARY_RED = "#EE2536"
@@ -292,7 +292,7 @@ def plot_chatbot(df):
 # 9. AI SUMMARISATION & INSIGHTS ENGINE
 # ============================================================
 
-'''openai.api_key = st.secrets["OPENAI_API_KEY"]
+openai.api_key = st.secrets["OPENAI_API_KEY"]
 
 def generate_ai_insights(email_text):
     if not email_text.strip():
@@ -332,7 +332,7 @@ def apply_ai_insights(df):
     df["AI_Summary"] = summaries
     df["AI_Insights"] = insights
     df["AI_Risk_Level"] = risks
-    return df'''
+    return df
 
 # ============================================================
 # 8. MAIN PIPELINE FUNCTION (USED IN STREAMLIT)

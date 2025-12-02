@@ -9,7 +9,7 @@ import seaborn as sns
 import re
 from datetime import datetime
 import os
-# import openai
+import openai
 
 sns.set_theme(style="whitegrid")
 PRIMARY_RED = "#EE2536"
@@ -171,7 +171,7 @@ def export(df):
 # =================================================================
 # 8. AI SUMMARISATION & INSIGHTS
 # =================================================================
-''' openai.api_key = os.getenv("OPENAI_API_KEY")  # <- Safe fallback if not using Streamlit
+openai.api_key = os.getenv("OPENAI_API_KEY")  # <- Safe fallback if not using Streamlit
 
 def generate_ai_insights(email_text):
     if not email_text.strip():
@@ -206,7 +206,7 @@ def apply_ai_insights(df):
     df["AI_Summary"] = summaries
     df["AI_Insights"] = insights
     df["AI_Risk_Level"] = risks
-    return df'''
+    return df
 
 # =================================================================
 # 9. FULL PIPELINE
