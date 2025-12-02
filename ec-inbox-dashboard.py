@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 import io
 from inbox_analyser import preprocess, load_data, clean_datetime, clean_text_basic, clean_text_chatbot
 import sys
+import openai
 
 # ------------------- PAGE CONFIG -------------------
 st.set_page_config(page_title="E&C Inbox Dashboard", layout="wide")
@@ -302,3 +303,66 @@ buffer.seek(0)
 st.download_button("📥 Download filtered & cleaned dataset (xlsx)", buffer, file_name=f"ECInbox_filtered_{datetime.today().strftime('%Y%m%d')}.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 
 st.caption("Dashboard generated: " + datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+
+# ------------------- AI INSIGHTS -------------------
+try:
+    import openai
+    OPENAI_AVAILABLE = True
+except ModuleNotFoundError:
+    OPENAI_AVAILABLE = False
+    st.warning("OpenAI module not found — AI insights will be mocked.")
+
+def generate_ai_insights(subject, body):
+    """Return AI summary/insights/risk level for a single email"""
+    text = f"{subject} {body}".strip()
+    if not text:
+        return {"summary": "", "insights": "", "risk": ""}
+    
+    if OPENAI_AVAILABLE:
+        try:
+            openai.api_key = st.secrets["OPENAI_API_KEY"]
+            prompt = f"""
+            You are an Ethics & Compliance assistant.
+            Summarize this email in 1–2 sentences.
+            Identify any compliance topics (ABAC, COI, Sanctions, Data Protection, IPT).
+            Suggest risk level (Low, Medium, High) and recommended action.
+            Email content: {text}
+            """
+            response = openai.ChatCompletion.create(
+                model="gpt-4",
+                messages=[
+                    {"role": "system", "content": "You are a compliance expert."},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.3
+            )
+            output = response.choices[0].message["content"]
+            # parse simple heuristic
+            summary = output.split("Summary:")[-1].split("Insights:")[0].strip() if "Summary:" in output else output
+            insights = output.split("Insights:")[-1].split("Risk:")[0].strip() if "Insights:" in output else ""
+            risk = output.split("Risk:")[-1].strip() if "Risk:" in output else ""
+            return {"summary": summary, "insights": insights, "risk": risk}
+        except Exception as e:
+            return {"summary": "Error fetching AI insights", "insights": str(e), "risk": ""}
+    else:
+        # fallback/mock
+        return {"summary": text[:75]+"...", "insights": "AI insights unavailable.", "risk": "Unknown"}
+
+# Apply AI insights for filtered_df (limit for performance)
+st.markdown("### 🤖 Sample AI Insights for Emails")
+sample_emails = filtered_df.head(5)
+ai_rows = []
+for idx, row in sample_emails.iterrows():
+    ai_result = generate_ai_insights(row["Subject"], row["Body.TextBody"] if "Body.TextBody" in row else "")
+    ai_rows.append({
+        "Subject": row["Subject"],
+        "Category": row.get("Category", ""),
+        "Sub-Category": row.get("Sub-Category", ""),
+        "AI_Summary": ai_result["summary"],
+        "AI_Insights": ai_result["insights"],
+        "AI_Risk": ai_result["risk"]
+    })
+
+ai_df = pd.DataFrame(ai_rows)
+st.dataframe(ai_df, use_container_width=True)
+
