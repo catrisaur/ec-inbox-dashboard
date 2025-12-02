@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 import io
 from inbox_analyser import preprocess, load_data, clean_datetime, clean_text_basic, clean_text_chatbot
 import sys
-import gemini
+# import gemini
 
 # ------------------- PAGE CONFIG -------------------
 st.set_page_config(page_title="E&C Inbox Dashboard", layout="wide")
@@ -305,7 +305,7 @@ st.download_button("📥 Download filtered & cleaned dataset (xlsx)", buffer, fi
 st.caption("Dashboard generated: " + datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
 
 # ------------------- AI INSIGHTS (GENERAL + ACTIONABLE) -------------------
-try:
+''' try:
     import gemini
     GEMINI_AVAILABLE = True
 except ModuleNotFoundError:
@@ -374,7 +374,7 @@ ai_result = generate_ai_insights_batch(subjects, bodies)
 
 st.markdown(f"**Summary:** {ai_result['summary']}")
 st.markdown(f"**Insights & Recommendations:** {ai_result['insights']}")
-st.markdown(f"**Overall Risk Level:** {ai_result['risk']}")
+st.markdown(f"**Overall Risk Level:** {ai_result['risk']}")'''
 
 
 
