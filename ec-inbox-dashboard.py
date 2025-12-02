@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 # PAGE CONFIGURATION
 # =========================================================
 st.set_page_config(page_title="E&C Inbox Dashboard", layout="wide")
-st.title("📊 **E&C Inbox Executive Dashboard**")
+st.title("📊 **E&C Inbox Dashboard**")
 st.caption("Operational intelligence for email volumes, automation potential, and efficiency gains.")
 
 # =========================================================
