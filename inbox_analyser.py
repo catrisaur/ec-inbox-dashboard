@@ -91,70 +91,67 @@ def preprocess(df):
 CATEGORY_MAP = {
     "Anti-Bribery and Anti-Corruption (ABAC)": {
         "ISO 37001": {
-            "strong": [r"\biso\s*37001\b", r"\bsurveillance audit\b", r"\banti[- ]bribery standard\b"],
-            "weak": [r"certification", r"compliance standard"]
+            "strong": [r"\biso\s*37001\b", r"\baudit\b", r"\banti[- ]bribery\b"],
+            "weak": [r"\bcertification\b", r"\bcompliance\b"]
         },
         "Gifts & Entertainment": {
-            "strong": [r"\bgift\b", r"\bgifts\b", r"\bge\b", r"\bmoon\s*cake\b", r"\bmooncake\b",
-                       r"\bendowment\b", r"formulaire de", r"\breceiving\b", r"\boffering\b",
-                       r"hospitality", r"treat", r"lunch", r"dinner", r"gift card", r"declaration", r"received", r"offered", r"employee offering"],
-            "weak": [r"entertainment", r"meal", r"token", r"cny"]
+            "strong": [r"\bgift\b", r"\bgifts\b", r"\bdeclaration\b", r"\boffered\b", r"\breceived\b"],
+            "weak": [r"\bmeal\b", r"\btoken\b", r"\bhospitality\b"]
         },
         "ABAC eLearning / Training": {
-            "strong": [r"\babac\b.*(training|elearning)", r"mandatory training", r"translation", r"translations"],
-            "weak": []
+            "strong": [r"\babac\b.*(training|elearning)", r"\bmandatory training\b"],
+            "weak": [r"\bprocedures\b"]
         },
         "Third-Party Due Diligence / Screening": {
-            "strong": [r"dow jones", r"\basam\b", r"screening", r"third[- ]party", r"due diligence", r"kyc",
-                       r"background check", r"supplier audit", r"screening request", r"due diligence", r"diligence screening", r"supplier background", r"vendor check"],
-            "weak": []
+            "strong": [r"\bdow jones\b", r"\bscreening\b", r"\bthird[- ]party\b", r"\bdue diligence\b"],
+            "weak": [r"\bcheck\b", r"\bmonitoring\b"]
         },
         "Charitable Donations, Sponsorship & Political Contributions": {
-            "strong": [r"donation", r"sponsorship", r"csr", r"political contribution", r"charitable giving"],
-            "weak": []
+            "strong": [r"\bsponsorship\b", r"\bdonation\b", r"\bcharitable\b"],
+            "weak": [r"\bcsr\b"]
         }
     },
     "Conflict of Interests (COI)": {
         "COI Declaration": {
-            "strong": [r"\bcoi\b", r"conflict of interest", r"interest declaration"],
-            "weak": [r"family relationship", r"related party"]
+            "strong": [r"\bconflict of interest\b", r"\bcoi\b", r"\binterest declaration\b"],
+            "weak": [r"\bfamily relationship\b"]
         },
         "External Appointments": {
-            "strong": [r"external appointment", r"outside employment", r"side job", r"additional role"],
-            "weak": []
+            "strong": [r"\bappointment\b", r"\bboard\b", r"\bexternal role\b"],
+            "weak": [r"\badditional role\b"]
         }
     },
     "Data Protection": {
         "Data Incident / Breach": {
-            "strong": [r"data breach", r"phishing", r"cyber incident", r"malware", r"ransomware", r"leak of data", r"PII"],
-            "weak": [r"security incident", r"personal data"]
+            "strong": [r"\bdata breach\b", r"\bphishing\b", r"\bransomware\b", r"\bcyber incident\b"],
+            "weak": [r"\bsecurity incident\b", r"\bpersonal data\b"]
         },
         "Data Governance & Classification": {
-            "strong": [r"data classification", r"governance", r"GDPR", r"data handling", r"sensitive information"],
-            "weak": []
+            "strong": [r"\bdata classification\b", r"\bGDPR\b", r"\bgovernance\b"],
+            "weak": [r"\bsensitive information\b"]
         }
     },
     "Interested Person Transactions (IPT)": {
         "IPT Policies & Procedures": {
-            "strong": [r"\bipt\b policy", r"ipt procedure", r"ipt compliance"],
+            "strong": [r"\bipt\b.*policy", r"\bipt\b.*procedure"],
             "weak": []
         },
         "IPT Portal / System Issues": {
-            "strong": [r"ipt portal", r"ipt system", r"ipt access", r"cannot login", r"cannot access"],
-            "weak": [r"login issue", r"access problem"]
+            "strong": [r"\bipt portal\b", r"\bipt system\b", r"\baccess\b"],
+            "weak": [r"\blogin issue\b"]
         },
         "IPT Refreshers / Training": {
-            "strong": [r"ipt training", r"ipt refresher", r"ipt course"],
+            "strong": [r"\bipt training\b", r"\bipt refresher\b"],
             "weak": []
         }
     },
     "Sanctions": {
         "Sanction Risk Framework": {
-            "strong": [r"sanctions risk", r"risk assessment", r"compliance check"],
+            "strong": [r"\bsanction\b", r"\brisk assessment\b", r"\bcompliance\b"],
             "weak": []
         },
         "Sanctions Policies & Procedures": {
-            "strong": [r"sanctions procedures", r"sanctions operating", r"sanctions policy", r"review sanctions"],
+            "strong": [r"\bsanctions operating\b", r"\bsanctions policy\b"],
             "weak": []
         }
     }
