@@ -178,6 +178,47 @@ if uploaded_file:
 
 
     # =========================================================
+    # INSIGHTS: Types of Emails Suitable for Chatbot Automation
+    # =========================================================
+    st.markdown("### 🤖 **Automation-Ready Email Types**")
+
+    # Filter emails marked as chatbot addressable
+    chatbot_emails = filtered_df[filtered_df["Chatbot_Addressable"] == "Yes"]
+
+    if chatbot_emails.empty:
+        st.info("No emails identified as chatbot-addressable in the current filter.")
+    else:
+        # Group by Category and Sub-Category for summary
+        auto_summary = chatbot_emails.groupby(["Category", "Sub-Category"]).size().reset_index(name="Count").sort_values("Count", ascending=False)
+
+        st.markdown("#### ✅ **Top Categories & Sub-Categories for Automation**")
+        st.dataframe(auto_summary, use_container_width=True)
+
+        # Show sample phrases from subjects for chatbot script design
+        st.markdown("#### 🗂 **Common Request Patterns (Sample Phrases)**")
+        sample_subjects = chatbot_emails["Subject"].dropna().head(10).tolist()
+        st.write("Examples of requests that can be automated:")
+        for subj in sample_subjects:
+            st.write(f"- {subj}")
+
+        # Visualize automation-ready categories
+        fig_auto = px.bar(
+            auto_summary, x="Count", y="Sub-Category", color="Category",
+            orientation="h", title="Automation-Ready Email Volume by Sub-Category",
+            color_discrete_sequence=px.colors.qualitative.Set2
+        )
+        st.plotly_chart(fig_auto, use_container_width=True)
+
+        # Insight text
+        st.markdown("""
+        ✅ **Insights for Chatbot Design:**
+        - High-volume sub-categories with repetitive requests are prime candidates for automation.
+        - Common patterns include password resets, access issues, and form submissions.
+        - Use these patterns to create chatbot intents and FAQs.
+        """)
+
+
+    # =========================================================
     # ACTIONABLE INSIGHTS
     # =========================================================
     st.markdown("### 📌 **Strategic Recommendations & Insights**")
