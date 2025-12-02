@@ -124,7 +124,7 @@ elif use_default_button:
         st.error(f"Default dataset not found at {DEFAULT_PATH}. Upload a file or change the path.")
         st.stop()
 else:
-    st.info("Upload a dataset (Excel) or check 'Use built-in example dataset' to proceed.")
+    st.info("Upload a dataset (Excel) or check 'Use built-in dataset' to proceed.")
     st.stop()
 
 # ------------------- VALIDATE SCHEMA AFTER PROCESSING -------------------
