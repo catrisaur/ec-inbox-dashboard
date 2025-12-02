@@ -21,7 +21,7 @@ PRIMARY_RED = "#EE2536"
 # 1️⃣ FILE UPLOADER
 # ============================================================
 
-st.title("📨 Executive Inbox Dashboard (Automated Pipeline)")
+st.title("📨 E&C Inbox Dashboard")
 uploaded = st.file_uploader("Upload Outlook export (Excel or CSV)", type=["xlsx", "csv"])
 
 if not uploaded:
