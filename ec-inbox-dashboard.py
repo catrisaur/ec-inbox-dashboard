@@ -80,7 +80,7 @@ def fallback_process(df):
     return df
 
 # ------------------- UPLOAD OR LOAD FIXED FILE -------------------
-use_default_button = st.checkbox("Load dashboard (dataset last updated 2025-12-02)", value=False)
+use_default_button = st.checkbox("Load dashboard (Dataset last updated: 2025-12-02)", value=False)
 
 df = None
 if use_default_button:
