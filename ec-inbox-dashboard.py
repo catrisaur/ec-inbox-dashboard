@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 import io
 from inbox_analyser import preprocess, load_data, clean_datetime, clean_text_basic, clean_text_chatbot
 import subprocess
+import requests
 
 # ------------------- PAGE CONFIG -------------------
 st.set_page_config(page_title="E&C Inbox Dashboard", layout="wide")
@@ -306,52 +307,89 @@ st.caption("Dashboard generated: " + datetime.now().strftime("%Y-%m-%d %H:%M:%S"
 
 # ------------------- AI INSIGHTS INTEGRATION -------------------
 
+import requests
+
 def generate_ai_insights_batch(subjects, bodies):
     """
-    Generate AI insights for a batch of emails using Ollama locally.
+    Generate AI insights for a batch of emails using Ollama's local API.
     Returns structured summary, insights, and risk level.
     """
-    text = "\n".join([f"Subject: {s}\nBody: {b}" for s, b in zip(subjects, bodies)])
+
+    # Combine subjects + bodies into a long text block
+    text = "\n".join([
+        f"Subject: {s}\nBody: {b}"
+        for s, b in zip(subjects, bodies)
+    ])
+
     if not text.strip():
         return {"summary": "", "insights": "", "risk": ""}
 
+    # -----------------------------
+    # 📜 Prompt Template
+    # -----------------------------
+    prompt = f"""
+    You are an Ethics & Compliance assistant.
+    Summarize the following emails at a high level, focusing on:
+
+    - Key compliance themes (ABAC, COI, Sanctions, Data Protection, IPT)
+    - Any potential compliance risks (Low / Medium / High)
+    - Actionable recommendations for management or E&C teams
+    - Patterns or signals that stand out across the emails
+
+    Emails:
+    {text}
+
+    Please respond in this exact format:
+
+    Summary:
+    Insights:
+    Risk:
+    """
+
+    # -----------------------------
+    # 🚀 Call Ollama API
+    # -----------------------------
     try:
-        # 📜 Prompt for Ollama model
-        prompt = f"""
-        You are an Ethics & Compliance assistant.
-        Summarize the following emails to provide a high-level view, highlighting:
-        - Key compliance topics (ABAC, COI, Sanctions, Data Protection, IPT)
-        - Potential risks and risk levels (Low, Medium, High)
-        - Recommended actionable steps for management or compliance team
-
-        Emails content:
-        {text}
-
-        Please structure your response clearly with:
-        Summary:
-        Insights:
-        Risk:
-        """
-
-        # 🚀 Call Ollama via subprocess (assuming Ollama is installed and model is pulled)
-        result = subprocess.run(
-            ["ollama", "run", "llama2"],  # Replace 'llama2' with your chosen model
-            input=prompt.encode("utf-8"),
-            capture_output=True,
-            text=True
+        response = requests.post(
+            "http://localhost:11434/api/generate",
+            json={
+                "model": "llama3.1",   # ← change model name if needed
+                "prompt": prompt,
+                "stream": False
+            },
+            timeout=60
         )
 
-        output = result.stdout.strip()
+        output = response.json().get("response", "")
 
-        # ⚙️ Parse response
-        summary = output.split("Summary:")[-1].split("Insights:")[0].strip() if "Summary:" in output else ""
-        insights = output.split("Insights:")[-1].split("Risk:")[0].strip() if "Insights:" in output else output
-        risk = output.split("Risk:")[-1].strip() if "Risk:" in output else ""
+        # -----------------------------
+        # ⚙️ Extract structured sections
+        # -----------------------------
+        summary = ""
+        insights = ""
+        risk = ""
 
-        return {"summary": summary, "insights": insights, "risk": risk}
+        if "Summary:" in output:
+            summary = output.split("Summary:")[-1].split("Insights:")[0].strip()
+
+        if "Insights:" in output:
+            insights = output.split("Insights:")[-1].split("Risk:")[0].strip()
+
+        if "Risk:" in output:
+            risk = output.split("Risk:")[-1].strip()
+
+        return {
+            "summary": summary,
+            "insights": insights,
+            "risk": risk
+        }
 
     except Exception as e:
-        return {"summary": "Error fetching AI insights", "insights": str(e), "risk": ""}
+        return {
+            "summary": "",
+            "insights": f"Error generating insights: {str(e)}",
+            "risk": ""
+        }
 
 
 # Apply AI insights to top N emails for demo/general insights
