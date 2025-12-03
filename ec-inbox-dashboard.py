@@ -10,9 +10,8 @@ import matplotlib.pyplot as plt
 import io
 from inbox_analyser import preprocess, load_data, clean_datetime, clean_text_basic, clean_text_chatbot
 import sys
-import openai
 import requests
-import huggingface_hub
+import ollama
 
 # ------------------- PAGE CONFIG -------------------
 st.set_page_config(page_title="E&C Inbox Dashboard", layout="wide")
@@ -305,6 +304,7 @@ buffer.seek(0)
 st.download_button("📥 Download filtered & cleaned dataset (xlsx)", buffer, file_name=f"ECInbox_filtered_{datetime.today().strftime('%Y%m%d')}.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 
 st.caption("Dashboard generated: " + datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+
 
 # ------------------- AI INSIGHTS INTEGRATION -------------------
 
