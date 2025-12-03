@@ -106,7 +106,7 @@ CATEGORY_MAP = {
             "weak": [r"\bprocedures\b"]
         },
         "Third-Party Due Diligence / Screening": {
-            "strong": [r"\bdow jones\b", r"\bscreening\b", r"\bthird[- ]party\b", r"\bdue diligence\b"],
+            "strong": [r"\bdow jones\b", r"\bscreening\b", r"\bthird[- ]party\b", r"\bdue diligence\b", r"\bvendor screening\b", r"\bdue diligence tool\b"],
             "weak": [r"\bcheck\b", r"\bmonitoring\b"]
         },
         "Charitable Donations, Sponsorship & Political Contributions": {
@@ -154,7 +154,7 @@ CATEGORY_MAP = {
             "weak": []
         },
         "Sanctions Policies & Procedures": {
-            "strong": [r"\bsanctions operating\b", r"\bsanctions policy\b"],
+            "strong": [r"\bsanctions operating\b", r"\bsanctions policy\b", r"\breview sanctions\b"],
             "weak": []
         }
     }

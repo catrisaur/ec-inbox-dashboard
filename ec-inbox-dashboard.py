@@ -167,7 +167,7 @@ tabs = st.tabs(["Trends", "Categories", "Automation", "Text Insights", "Strategi
 
 # Trends tab
 with tabs[0]:
-    st.markdown("### 📉 Email Volume Trends")
+    st.markdown("### Email Volume Trends")
 
     # Monthly trend
     monthly = filtered_df.groupby("Month").size().reset_index(name="Count")
@@ -190,7 +190,7 @@ with tabs[0]:
 
 # Categories tab
 with tabs[1]:
-    st.markdown("### 📂 Category Insights")
+    st.markdown("### Category Insights")
     cat_counts = filtered_df.groupby("Category").size().reset_index(name="Count").sort_values("Count", ascending=False)
     fig_cat = px.bar(cat_counts, x="Count", y="Category", orientation="h", color="Count", color_continuous_scale=px.colors.sequential.Reds, title="Volume by Category")
     st.plotly_chart(fig_cat, use_container_width=True)
@@ -208,7 +208,7 @@ with tabs[1]:
 
 # Automation tab
 with tabs[2]:
-    st.markdown("### 🤖 Automation-Ready Email Types")
+    st.markdown("### Chatbot-Addressable Emails")
     chatbot_df = filtered_df[filtered_df["Chatbot_Addressable"] == "Yes"]
     if chatbot_df.empty:
         st.info("No emails identified as chatbot-addressable in the current filter.")
@@ -223,13 +223,13 @@ with tabs[2]:
         st.plotly_chart(fig_bubble, use_container_width=True)
 
         # Sample subjects
-        st.markdown("#### Sample Subjects for Chatbot Design")
+        st.markdown("#### Sample Emails Suitable for Chatbot Automation")
         for subj in chatbot_df["Subject"].dropna().head(10):
             st.write(f"- {subj}")
 
 # Text Insights tab
 with tabs[3]:
-    st.markdown("### 🗂 Top Keywords & Phrases")
+    st.markdown("### Top Keywords & Phrases")
     text_data = " ".join(filtered_df["Subject"].dropna().tolist())
     stopwords = {"the","and","to","of","in","for","on","at","a","is","with","by","an","be","or","please","hi","dear"}
     words = [w for w in re.findall(r'\b\w+\b', text_data.lower()) if w not in stopwords and len(w) > 2]
@@ -256,7 +256,7 @@ with tabs[3]:
 
 # Strategic Insights tab
 with tabs[4]:
-    st.markdown("### 📌 Strategic Recommendations & Insights")
+    st.markdown("### Strategic Recommendations & Insights")
     top_cat = cat_counts.iloc[0]['Category'] if not cat_counts.empty else "N/A"
     peak_month = monthly.loc[monthly['Count'].idxmax()]['Month'] if len(monthly) else "N/A"
     st.markdown(f"""
