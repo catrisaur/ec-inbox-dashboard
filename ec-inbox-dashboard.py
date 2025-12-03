@@ -103,7 +103,6 @@ if use_default_button:
         st.error(f"Default dataset not found at {DEFAULT_PATH}. Upload a file or change the path.")
         st.stop()
 
-
 # ------------------- VALIDATE SCHEMA AFTER PROCESSING -------------------
 # Ensure minimal columns present (dashboard expects these)
 df = ensure_cols(df)
