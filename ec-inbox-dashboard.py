@@ -351,7 +351,7 @@ def generate_ai_insights_batch(subjects, bodies):
     # -----------------------------
     try:
         response = requests.post(
-            "http://localhost:11434/api/generate",
+            "http://localhost:11434",
             json={
                 "model": "llama3.1",   # ← change model name if needed
                 "prompt": prompt,
