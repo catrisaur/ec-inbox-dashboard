@@ -266,9 +266,7 @@ with tabs[4]:
 
     st.markdown(f"""
     **Top Category:** `{top_cat}`  
-    **Category Confidence:** `{top_conf:.2f}`  
     **Peak Month:** `{peak_month}`  
-    **Avg. Chatbot Confidence (Addressable):** `{avg_chatbot_conf:.2f}`  
 
     ✅ **Actionable Insights:**  
     - **Prioritise Automation:** Target high-volume category `{top_cat}` (Confidence: `{top_conf:.2f}`) for chatbot integration and workflow automation.  
