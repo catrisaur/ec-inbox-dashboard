@@ -19,3 +19,4 @@ openpyxl
 streamlit
 wordcloud
 openai
+huggingface-hub

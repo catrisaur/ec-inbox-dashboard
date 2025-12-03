@@ -11,6 +11,8 @@ import io
 from inbox_analyser import preprocess, load_data, clean_datetime, clean_text_basic, clean_text_chatbot
 import sys
 import openai
+import requests
+import huggingface_hub
 
 # ------------------- PAGE CONFIG -------------------
 st.set_page_config(page_title="E&C Inbox Dashboard", layout="wide")
@@ -304,80 +306,58 @@ st.download_button("📥 Download filtered & cleaned dataset (xlsx)", buffer, fi
 
 st.caption("Dashboard generated: " + datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
 
-# ------------------- AI INSIGHTS (GENERAL + ACTIONABLE) -------------------
-
-import streamlit as st # Assuming 'st' is Streamlit as used in the original code
-
-try:
-    import openai
-    OPENAI_AVAILABLE = True
-except ModuleNotFoundError:
-    OPENAI_AVAILABLE = False
-    st.warning("OpenAI module not found — AI insights will be mocked.")
-
+# ------------------- AI INSIGHTS INTEGRATION -------------------
 
 def generate_ai_insights_batch(subjects, bodies):
     """
-    Generate AI insights for a batch of emails.
-    Returns one summary/insights/risk level that captures trends and actionable points.
+    Generate AI insights for a batch of emails using Hugging Face API.
+    Returns structured summary, insights, and risk level.
     """
-    # 📝 Prepare the text input
     text = "\n".join([f"Subject: {s}\nBody: {b}" for s, b in zip(subjects, bodies)])
     if not text.strip():
         return {"summary": "", "insights": "", "risk": ""}
 
-    if OPENAI_AVAILABLE:
-        try:
-            # 🔑 Set the OpenAI API Key from Streamlit Secrets
-            # Note: The 'openai' library uses the client model now.
-            client = openai.OpenAI(
-                api_key=st.secrets["OPENAI_API_KEY"] # Ensure this secret is set
-            )
-            
-            # 📜 Define the prompt for the model
-            prompt = f"""
-            You are an Ethics & Compliance assistant.
-            Summarize the following emails to provide a high-level view, highlighting:
-            - Key compliance topics (ABAC, COI, Sanctions, Data Protection, IPT)
-            - Potential risks and risk levels (Low, Medium, High)
-            - Recommended actionable steps for management or compliance team
+    try:
+        # 🔑 Hugging Face API token from Streamlit secrets
+        api_token = st.secrets["HUGGINGFACE_API_KEY"]
+        headers = {"Authorization": f"Bearer {api_token}"}
 
-            Emails content:
-            {text}
-            
-            Please structure your response clearly, labeling sections with 'Summary:', 'Insights:', and 'Risk:' to facilitate programmatic parsing.
-            """
+        # 📜 Prompt for the model
+        prompt = f"""
+        You are an Ethics & Compliance assistant.
+        Summarize the following emails to provide a high-level view, highlighting:
+        - Key compliance topics (ABAC, COI, Sanctions, Data Protection, IPT)
+        - Potential risks and risk levels (Low, Medium, High)
+        - Recommended actionable steps for management or compliance team
 
-            # 🚀 Call the OpenAI API
-            response = client.chat.completions.create(
-                model="gpt-4o",  # Using a capable OpenAI model
-                messages=[
-                    {"role": "system", "content": "You are a compliance expert. Provide a structured response with 'Summary:', 'Insights:', and 'Risk:' sections."},
-                    {"role": "user", "content": prompt}
-                ],
-                temperature=0.3
-            )
+        Emails content:
+        {text}
 
-            # 🔍 Extract the content
-            output = response.choices[0].message.content
+        Please structure your response clearly with:
+        Summary:
+        Insights:
+        Risk:
+        """
 
-            # ⚙️ Simple heuristic parsing
-            # Look for the labels "Summary:", "Insights:", and "Risk:"
-            summary = output.split("Summary:")[-1].split("Insights:")[0].strip() if "Summary:" in output else ""
-            insights = output.split("Insights:")[-1].split("Risk:")[0].strip() if "Insights:" in output else output
-            risk = output.split("Risk:")[-1].strip() if "Risk:" in output else ""
+        # 🚀 Call Hugging Face Inference API
+        response = requests.post(
+            "https://api-inference.huggingface.co/models/bigscience/bloom",  # Example model
+            headers=headers,
+            json={"inputs": prompt}
+        )
 
-            return {"summary": summary, "insights": insights, "risk": risk}
+        result = response.json()
+        output = result.get("generated_text", "")
 
-        except Exception as e:
-            # ⚠️ Handle API errors
-            return {"summary": "Error fetching AI insights", "insights": str(e), "risk": ""}
+        # ⚙️ Parse response
+        summary = output.split("Summary:")[-1].split("Insights:")[0].strip() if "Summary:" in output else ""
+        insights = output.split("Insights:")[-1].split("Risk:")[0].strip() if "Insights:" in output else output
+        risk = output.split("Risk:")[-1].strip() if "Risk:" in output else ""
 
-    else:
-        # 🤖 Fallback/mock when the library isn't available
-        return {"summary": f"{len(subjects)} emails analyzed...", 
-                "insights": "AI insights unavailable.", 
-                "risk": "Unknown"}
+        return {"summary": summary, "insights": insights, "risk": risk}
+
+    except Exception as e:
+        return {"summary": "Error fetching AI insights", "insights": str(e), "risk": ""}
 
 # Apply AI insights to top N emails for demo/general insights
 st.markdown("### 🤖 AI Insights (High-Level & Actionable)")
