@@ -307,7 +307,7 @@ st.caption("Dashboard generated: " + datetime.now().strftime("%Y-%m-%d %H:%M:%S"
 
 # ------------------- AI INSIGHTS INTEGRATION -------------------
 
-import requests
+'''import requests
 
 def generate_ai_insights_batch(subjects, bodies):
     """
@@ -403,6 +403,6 @@ ai_result = generate_ai_insights_batch(subjects, bodies)
 st.markdown(f"**Summary:** {ai_result['summary']}")
 st.markdown(f"**Insights & Recommendations:** {ai_result['insights']}")
 st.markdown(f"**Overall Risk Level:** {ai_result['risk']}")
-
+'''
 
 
