@@ -170,12 +170,12 @@ with tabs[0]:
     # Monthly trend
     monthly = filtered_df.groupby("Month").size().reset_index(name="Count")
     fig_month = px.line(monthly, x="Month", y="Count", markers=True, title="Monthly Email Volume", color_discrete_sequence=["#EE2536"])
-    st.plotly_chart(fig_month, use_container_width=True)
+    st.plotly_chart(fig_month, width=True)
 
     # Cumulative trend
     cumulative = filtered_df.groupby("Date").size().cumsum().reset_index(name="Cumulative")
     fig_cum = px.line(cumulative, x="Date", y="Cumulative", title="Cumulative Emails Over Time", color_discrete_sequence=["#FF6B6B"])
-    st.plotly_chart(fig_cum, use_container_width=True)
+    st.plotly_chart(fig_cum, width=True)
 
     # Heatmap Hour vs Weekday
     heat_df = filtered_df.groupby(["Weekday", "Hour"]).size().reset_index(name="Count")
@@ -184,25 +184,25 @@ with tabs[0]:
     heat_df["Weekday"] = pd.Categorical(heat_df["Weekday"], categories=order, ordered=True)
     fig_heat = px.density_heatmap(heat_df, x="Hour", y="Weekday", z="Count", title="Email Volume by Hour & Weekday", color_continuous_scale="Reds")
     fig_heat.update_yaxes(categoryorder="array", categoryarray=order)
-    st.plotly_chart(fig_heat, use_container_width=True)
+    st.plotly_chart(fig_heat, width=True)
 
 # Categories tab
 with tabs[1]:
     st.markdown("### Category Insights")
     cat_counts = filtered_df.groupby("Category").size().reset_index(name="Count").sort_values("Count", ascending=False)
     fig_cat = px.bar(cat_counts, x="Count", y="Category", orientation="h", color="Count", color_continuous_scale=px.colors.sequential.Reds, title="Volume by Category")
-    st.plotly_chart(fig_cat, use_container_width=True)
+    st.plotly_chart(fig_cat, width=True)
 
     # Treemap
     treemap_df = filtered_df.groupby(["Category", "Sub-Category"]).size().reset_index(name="Count")
     fig_tree = px.treemap(treemap_df, path=["Category", "Sub-Category"], values="Count", color="Category", color_discrete_sequence=px.colors.sequential.Reds, title="Category & Sub-Category Distribution")
     fig_tree.update_traces(root_color="white")
-    st.plotly_chart(fig_tree, use_container_width=True)
+    st.plotly_chart(fig_tree, width=True)
 
     # Stacked automation potential
     auto_df = filtered_df.groupby(["Category", "Chatbot_Addressable"]).size().reset_index(name="Count")
     fig_stack = px.bar(auto_df, x="Category", y="Count", color="Chatbot_Addressable", title="Automation Potential by Category", color_discrete_map={"Yes":"#EE2536", "No":"#FFC1C1"})
-    st.plotly_chart(fig_stack, use_container_width=True)
+    st.plotly_chart(fig_stack, width=True)
 
 # Automation tab
 with tabs[2]:
@@ -212,13 +212,13 @@ with tabs[2]:
         st.info("No emails identified as chatbot-addressable in the current filter.")
     else:
         auto_summary = chatbot_df.groupby(["Category", "Sub-Category"]).size().reset_index(name="Count").sort_values("Count", ascending=False)
-        st.dataframe(auto_summary, use_container_width=True)
+        st.dataframe(auto_summary, width=True)
 
         # Bubble chart
         bubble_df = filtered_df.groupby("Category").agg(Total=('Category','count'), Automation=('Chatbot_Addressable', lambda x: (x=='Yes').sum())).reset_index()
         bubble_df["Automation %"] = bubble_df["Automation"] / bubble_df["Total"] * 100
         fig_bubble = px.scatter(bubble_df, x="Total", y="Automation %", size="Total", color="Category", hover_name="Category", title="Automation Potential vs Volume", color_discrete_sequence=px.colors.qualitative.Set2)
-        st.plotly_chart(fig_bubble, use_container_width=True)
+        st.plotly_chart(fig_bubble, width=True)
 
 # Text Insights tab
 with tabs[3]:
@@ -239,13 +239,13 @@ with tabs[3]:
     bigram_counts = Counter(bigrams).most_common(20)
     bigram_df = pd.DataFrame(bigram_counts, columns=["Phrase", "Frequency"])
     fig_bigram = px.bar(bigram_df, x="Frequency", y="Phrase", orientation="h", color="Frequency", color_continuous_scale="Reds", title="Top Two-Word Phrases")
-    st.plotly_chart(fig_bigram, use_container_width=True)
+    st.plotly_chart(fig_bigram, width=True)
 
     trigrams = [" ".join(tri) for tri in zip(words, words[1:], words[2:])]
     trigram_counts = Counter(trigrams).most_common(20)
     trigram_df = pd.DataFrame(trigram_counts, columns=["Phrase", "Frequency"])
     fig_trigram = px.bar(trigram_df, x="Frequency", y="Phrase", orientation="h", color="Frequency", color_continuous_scale="Reds", title="Top Three-Word Phrases")
-    st.plotly_chart(fig_trigram, use_container_width=True)
+    st.plotly_chart(fig_trigram, width=True)
 
 # Strategic Insights tab
 with tabs[4]:
