@@ -19,4 +19,3 @@ openpyxl
 streamlit
 wordcloud
 subprocess
-json
