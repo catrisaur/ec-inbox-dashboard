@@ -98,7 +98,7 @@ if use_default_button:
             df = pd.read_excel(DEFAULT_PATH)
             df = ensure_cols(df)
             df = fallback_process(df)
-        st.success(f"Loaded default dataset: {DEFAULT_PATH}")
+        st.success(f"Loaded dataset: {DEFAULT_PATH}")
     except FileNotFoundError:
         st.error(f"Default dataset not found at {DEFAULT_PATH}. Upload a file or change the path.")
         st.stop()
