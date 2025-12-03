@@ -308,9 +308,12 @@ st.caption("Dashboard generated: " + datetime.now().strftime("%Y-%m-%d %H:%M:%S"
 
 # ------------------- AI INSIGHTS INTEGRATION -------------------
 
+import subprocess
+import json
+
 def generate_ai_insights_batch(subjects, bodies):
     """
-    Generate AI insights for a batch of emails using Hugging Face API.
+    Generate AI insights for a batch of emails using Ollama locally.
     Returns structured summary, insights, and risk level.
     """
     text = "\n".join([f"Subject: {s}\nBody: {b}" for s, b in zip(subjects, bodies)])
@@ -318,11 +321,7 @@ def generate_ai_insights_batch(subjects, bodies):
         return {"summary": "", "insights": "", "risk": ""}
 
     try:
-        # 🔑 Hugging Face API token from Streamlit secrets
-        api_token = st.secrets["HUGGINGFACE_API_KEY"]
-        headers = {"Authorization": f"Bearer {api_token}"}
-
-        # 📜 Prompt for the model
+        # 📜 Prompt for Ollama model
         prompt = f"""
         You are an Ethics & Compliance assistant.
         Summarize the following emails to provide a high-level view, highlighting:
@@ -339,15 +338,15 @@ def generate_ai_insights_batch(subjects, bodies):
         Risk:
         """
 
-        # 🚀 Call Hugging Face Inference API
-        response = requests.post(
-            "https://api-inference.huggingface.co/models/bigscience/bloom",  # Example model
-            headers=headers,
-            json={"inputs": prompt}
+        # 🚀 Call Ollama via subprocess (assuming Ollama is installed and model is pulled)
+        result = subprocess.run(
+            ["ollama", "run", "llama2"],  # Replace 'llama2' with your chosen model
+            input=prompt.encode("utf-8"),
+            capture_output=True,
+            text=True
         )
 
-        result = response.json()
-        output = result.get("generated_text", "")
+        output = result.stdout.strip()
 
         # ⚙️ Parse response
         summary = output.split("Summary:")[-1].split("Insights:")[0].strip() if "Summary:" in output else ""
@@ -358,6 +357,7 @@ def generate_ai_insights_batch(subjects, bodies):
 
     except Exception as e:
         return {"summary": "Error fetching AI insights", "insights": str(e), "risk": ""}
+
 
 # Apply AI insights to top N emails for demo/general insights
 st.markdown("### 🤖 AI Insights (High-Level & Actionable)")
