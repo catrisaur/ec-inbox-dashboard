@@ -102,8 +102,7 @@ if use_default_button:
     except FileNotFoundError:
         st.error(f"Default dataset not found at {DEFAULT_PATH}. Upload a file or change the path.")
         st.stop()
-else:
-    st.stop()
+
 
 # ------------------- VALIDATE SCHEMA AFTER PROCESSING -------------------
 # Ensure minimal columns present (dashboard expects these)
