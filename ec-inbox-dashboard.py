@@ -204,6 +204,31 @@ with tabs[1]:
     fig_stack = px.bar(auto_df, x="Category", y="Count", color="Chatbot_Addressable", title="Automation Potential by Category", color_discrete_map={"Yes":"#EE2536", "No":"#FFC1C1"})
     st.plotly_chart(fig_stack, use_container_width=True)
 
+    st.markdown("### 📩 Sample Emails by Category")
+
+    # Only include categories that appear in the filtered dataset
+    categories = sorted(filtered_df["Category"].dropna().unique())
+
+    selected_category = st.selectbox(
+        "Select a category to view email samples:",
+        categories,
+        index=0
+    )
+
+    # Extract sample emails
+    sample_rows = filtered_df[filtered_df["Category"] == selected_category]
+
+    if sample_rows.empty:
+        st.info("No email samples available for this category.")
+    else:
+        st.markdown(f"#### Showing {min(len(sample_rows), 5)} sample emails for **{selected_category}**")
+
+        for i, (_, row) in enumerate(sample_rows.head(5).iterrows(), start=1):
+            with st.expander(f"Sample Email {i}"):
+                st.markdown(f"**Subject:** {row.get('Subject', 'N/A')}")
+                st.markdown(f"**Body:**\n\n{row.get('Body', 'N/A')}")
+                st.markdown("---")
+
 # Automation tab
 with tabs[2]:
     st.markdown("### Chatbot-Addressable Emails")
