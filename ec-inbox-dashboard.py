@@ -80,30 +80,10 @@ def fallback_process(df):
     return df
 
 # ------------------- UPLOAD OR LOAD FIXED FILE -------------------
-uploaded = st.file_uploader("Upload Inbox File (Excel)", type=["xlsx", "xls"])
-use_default_button = st.checkbox("Use built-in dataset if available (last updated 2025-12-02)", value=False)
+use_default_button = st.checkbox("Load dataset if (last updated 2025-12-02)", value=False)
 
 df = None
-if uploaded:
-    try:
-        # If engine available, try to use it (it should accept file-like)
-        if engine is not None:
-            try:
-                df = engine.run_full_pipeline(uploaded)
-            except Exception:
-                # fallback: try path (unlikely for uploaded), else read and process locally
-                df = safe_read_excel(uploaded)
-                df = ensure_cols(df)
-                df = fallback_process(df)
-        else:
-            df = safe_read_excel(uploaded)
-            df = ensure_cols(df)
-            df = fallback_process(df)
-        st.success("Dataset cleaned and processed successfully from upload.")
-    except Exception as e:
-        st.error(f"Failed to load/process uploaded file: {e}")
-        st.stop()
-elif use_default_button:
+if use_default_button:
     # try to load a default fixed path; adjust path as needed
     DEFAULT_PATH = "ECInbox_Analysis_20251202.xlsx"
     try:
