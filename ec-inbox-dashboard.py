@@ -139,7 +139,7 @@ if filtered_df.empty:
     st.stop()
 
 # ------------------- KPI DASHBOARD -------------------
-st.markdown("### 📈 Executive KPIs")
+st.markdown("### 📈 KPIs")
 total_volume = len(filtered_df)
 chatbot_count = (filtered_df["Chatbot_Addressable"] == "Yes").sum()
 pct_chatbot = (chatbot_count / total_volume * 100) if total_volume else 0

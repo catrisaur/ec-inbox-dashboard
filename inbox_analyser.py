@@ -1,6 +1,7 @@
+
 # ============================================================
 # 📊 Inbox Data Analysis — Consolidated Engine
-# FULL CLEANING + CATEGORISATION + CHATBOT SCORING + VISUALS
+# FULL CLEANING + CATEGORIZATION + CHATBOT SCORING + VISUALS
 # Designed for integration with Streamlit
 # ============================================================
 
@@ -9,6 +10,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import re
 from datetime import datetime
+from typing import Tuple
 
 sns.set_theme(style="whitegrid")
 PRIMARY_RED = "#EE2536"
@@ -17,14 +19,13 @@ PRIMARY_RED = "#EE2536"
 # 1. LOAD + VALIDATE
 # =================================================================
 
-def load_data(filepath: str):
+def load_data(filepath: str) -> pd.DataFrame:
+    """Load Excel file and validate required columns."""
     df = pd.read_excel(filepath)
-
     required_cols = ['DateTimeSent', 'DateTimeReceived', 'Subject', 'Body.TextBody']
     missing_cols = [col for col in required_cols if col not in df.columns]
     if missing_cols:
         raise ValueError(f"Missing required columns: {missing_cols}")
-
     return df
 
 
@@ -32,23 +33,24 @@ def load_data(filepath: str):
 # 2. CLEANING FUNCTIONS
 # =================================================================
 
-def clean_datetime(col):
-    """Parse timestamps with fallback and clean invalid years."""
-    col = pd.to_datetime(col, errors="coerce")
-    col = col.mask((col.dt.year < 2000) | (col.dt.year > 2030))
-    return col
+def clean_datetime(series: pd.Series) -> pd.Series:
+    """Convert to datetime, remove invalid years."""
+    series = pd.to_datetime(series, errors="coerce")
+    return series.mask((series.dt.year < 2000) | (series.dt.year > 2030))
 
 
-def clean_text_basic(t):
-    if pd.isna(t):
+def clean_text_basic(text: str) -> str:
+    """Basic text cleaning: lowercase, remove special chars."""
+    if pd.isna(text):
         return ""
-    t = str(t).lower()
-    t = re.sub(r"\s+", " ", t)
-    t = re.sub(r"[^\w\s]", " ", t)
-    return t.strip()
+    text = str(text).lower()
+    text = re.sub(r"\s+", " ", text)
+    text = re.sub(r"[^\w\s]", " ", text)
+    return text.strip()
 
 
-def clean_text_chatbot(text):
+def clean_text_chatbot(text: str) -> str:
+    """Chatbot-specific cleaning: allow certain symbols."""
     if not isinstance(text, str):
         return ""
     text = text.lower()
@@ -61,19 +63,20 @@ def clean_text_chatbot(text):
 # 3. PREPROCESS EXECUTIVE INBOX DATA
 # =================================================================
 
-def preprocess(df):
+def preprocess(df: pd.DataFrame) -> pd.DataFrame:
+    """Clean datetime, filter year, remove duplicates and spam."""
     df["DateTimeSent"] = clean_datetime(df["DateTimeSent"])
     df["DateTimeReceived"] = clean_datetime(df["DateTimeReceived"])
 
-    # Remove invalid rows
-    df = df[~(df["DateTimeSent"].isna() & df["DateTimeReceived"].isna())]
+    # Remove rows with no valid dates
+    df = df.dropna(subset=["DateTimeSent", "DateTimeReceived"], how="all")
 
     # Filter to 2025 only
     df = df[df["DateTimeReceived"].dt.year == 2025].copy()
     df.drop_duplicates(inplace=True)
     df.reset_index(drop=True, inplace=True)
 
-    # Remove auto-replies + spam
+    # Remove auto-replies & spam
     exclude_terms = [
         'respuesta automática', 'automatic reply', 'automatische antwort',
         'réponse automatique', 'quarantine', 'undeliverable', 'test'
@@ -157,8 +160,7 @@ CATEGORY_MAP = {
     }
 }
 
-
-# Compile patterns
+# Precompile regex patterns for efficiency
 COMPILED_MAP = {
     cat: {
         sub: {
@@ -171,7 +173,8 @@ COMPILED_MAP = {
 }
 
 
-def map_category(text):
+def map_category(text: str) -> Tuple[str, str, str, float]:
+    """Map text to category and compute confidence score."""
     text = clean_text_basic(text)
     best = None
     best_score = 0
@@ -180,7 +183,6 @@ def map_category(text):
         for sub, strengths in subcats.items():
             strong_hits = sum(bool(p.search(text)) for p in strengths["strong"])
             weak_hits = sum(bool(p.search(text)) for p in strengths["weak"])
-
             score = strong_hits * 3 + weak_hits
             if score > best_score:
                 best_score = score
@@ -193,12 +195,10 @@ def map_category(text):
     return cat, sub, label, min(1, best_score / 5)
 
 
-def apply_category_mapping(df):
+def apply_category_mapping(df: pd.DataFrame) -> pd.DataFrame:
+    """Apply category mapping to dataframe."""
     mapped = df["Body.TextBody"].apply(map_category)
-    df["Category"] = mapped.apply(lambda x: x[0])
-    df["Sub-Category"] = mapped.apply(lambda x: x[1])
-    df["Sub-Sub-Category"] = mapped.apply(lambda x: x[2])
-    df["Confidence"] = mapped.apply(lambda x: x[3])
+    df[["Category", "Sub-Category", "Sub-Sub-Category", "Confidence"]] = pd.DataFrame(mapped.tolist(), index=df.index)
     return df
 
 
@@ -207,66 +207,28 @@ def apply_category_mapping(df):
 # =================================================================
 
 PATTERNS = {
-    "high_confidence": {
-        "weight": 2,
-        "patterns": [
-            r"how to",
-            r"reset password",
-            r"login issue",
-            r"access denied",
-            r"submit form",
-            r"check status",
-            r"activate account",
-        ],
-    },
-    "medium_confidence": {
-        "weight": 1,
-        "patterns": [
-            r"question",
-            r"inquiry",
-            r"clarification",
-            r"issue",
-            r"help",
-            r"support",
-        ],
-    },
-    "borderline_human_indicators": {
-        "weight": -1,
-        "patterns": [
-            r"please advise",
-            r"need approval",
-            r"confirm",
-            r"request approval",
-        ],
-    },
-    "human_required": {
-        "weight": -2,
-        "patterns": [
-            r"resignation",
-            r"legal",
-            r"complaint",
-            r"confidential",
-        ],
-    },
+    "high_confidence": {"weight": 2, "patterns": [r"how to", r"reset password", r"login issue", r"access denied", r"submit form", r"check status", r"activate account"]},
+    "medium_confidence": {"weight": 1, "patterns": [r"question", r"inquiry", r"clarification", r"issue", r"help", r"support"]},
+    "borderline_human_indicators": {"weight": -1, "patterns": [r"please advise", r"need approval", r"confirm", r"request approval"]},
+    "human_required": {"weight": -2, "patterns": [r"resignation", r"legal", r"complaint", r"confidential"]},
 }
 
 
-def compute_score(subject, body):
+def compute_score(subject: str, body: str) -> int:
+    """Compute chatbot addressability score."""
     text = clean_text_chatbot(subject + " " + body)
     score = 0
-
     for group, data in PATTERNS.items():
         weight = data["weight"]
         for pat in data["patterns"]:
             if re.search(pat, text):
                 score += weight
-
     return score
 
 
-def chatbot_addressability(row):
+def chatbot_addressability(row: pd.Series) -> Tuple[str, float, int]:
+    """Determine if chatbot can address the query."""
     score = compute_score(row["Subject"], row["Body.TextBody"])
-
     if score >= 2:
         return "Yes", min(1, score / 4), score
     elif score <= -1:
@@ -275,11 +237,10 @@ def chatbot_addressability(row):
         return "No", 0.3, score
 
 
-def apply_chatbot(df):
+def apply_chatbot(df: pd.DataFrame) -> pd.DataFrame:
+    """Apply chatbot scoring to dataframe."""
     results = df.apply(chatbot_addressability, axis=1)
-    df["Chatbot_Addressable"] = results.apply(lambda x: x[0])
-    df["Chatbot_Confidence"] = results.apply(lambda x: x[1])
-    df["Chatbot_Score"] = results.apply(lambda x: x[2])
+    df[["Chatbot_Addressable", "Chatbot_Confidence", "Chatbot_Score"]] = pd.DataFrame(results.tolist(), index=df.index)
     return df
 
 
@@ -287,11 +248,9 @@ def apply_chatbot(df):
 # 6. VISUALISATIONS (RETURN FIGURES FOR STREAMLIT)
 # =================================================================
 
-def plot_monthly(df):
-    monthly = (
-        df.groupby(df["DateTimeReceived"].dt.to_period("M"))
-        .size().reset_index(name="Count")
-    )
+def plot_monthly(df: pd.DataFrame):
+    """Plot monthly email volume."""
+    monthly = df.groupby(df["DateTimeReceived"].dt.to_period("M")).size().reset_index(name="Count")
     monthly["Month"] = monthly["DateTimeReceived"].astype(str)
 
     fig, ax = plt.subplots(figsize=(10, 4))
@@ -302,9 +261,9 @@ def plot_monthly(df):
     return fig
 
 
-def plot_chatbot(df):
+def plot_chatbot(df: pd.DataFrame):
+    """Plot chatbot addressability breakdown."""
     counts = df["Chatbot_Addressable"].value_counts()
-
     fig, ax = plt.subplots(figsize=(6, 6))
     ax.pie(counts, labels=counts.index, autopct="%1.1f%%", colors=["#EE2536", "#CCCCCC"])
     ax.set_title("🤖 Chatbot Addressability Breakdown")
@@ -315,7 +274,8 @@ def plot_chatbot(df):
 # 7. EXPORT
 # =================================================================
 
-def export(df):
+def export(df: pd.DataFrame) -> str:
+    """Export dataframe to Excel."""
     filename = f"ECInbox_Analysis_{datetime.today().strftime('%Y%m%d')}.xlsx"
     df.to_excel(filename, index=False)
     return filename
@@ -325,7 +285,8 @@ def export(df):
 # 8. MAIN PIPELINE FUNCTION (USED IN STREAMLIT)
 # =================================================================
 
-def run_full_pipeline(filepath):
+def run_full_pipeline(filepath: str) -> pd.DataFrame:
+    """Run full analysis pipeline."""
     df = load_data(filepath)
     df = preprocess(df)
     df = apply_category_mapping(df)
