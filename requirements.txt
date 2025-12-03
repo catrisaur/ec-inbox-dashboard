@@ -18,5 +18,5 @@ uvicorn
 openpyxl
 streamlit
 wordcloud
-openai
-huggingface-hub
+ollama
+ollama-python
