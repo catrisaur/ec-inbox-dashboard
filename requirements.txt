@@ -18,3 +18,4 @@ uvicorn
 openpyxl
 streamlit
 wordcloud
+openai
