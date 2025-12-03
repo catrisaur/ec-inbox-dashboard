@@ -10,9 +10,6 @@ import matplotlib.pyplot as plt
 import io
 from inbox_analyser import preprocess, load_data, clean_datetime, clean_text_basic, clean_text_chatbot
 import subprocess
-import json
-import sys
-import requests
 
 # ------------------- PAGE CONFIG -------------------
 st.set_page_config(page_title="E&C Inbox Dashboard", layout="wide")
