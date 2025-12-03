@@ -207,12 +207,72 @@ def apply_category_mapping(df: pd.DataFrame) -> pd.DataFrame:
 # =================================================================
 
 PATTERNS = {
-    "high_confidence": {"weight": 2, "patterns": [r"how to", r"reset password", r"login issue", r"access denied", r"submit form", r"check status", r"activate account"]},
-    "medium_confidence": {"weight": 1, "patterns": [r"question", r"inquiry", r"clarification", r"issue", r"help", r"support"]},
-    "borderline_human_indicators": {"weight": -1, "patterns": [r"please advise", r"need approval", r"confirm", r"request approval"]},
-    "human_required": {"weight": -2, "patterns": [r"resignation", r"legal", r"complaint", r"confidential"]},
-}
+    "high_confidence": {
+        "weight": 3,
+        "patterns": [
+            # Direct "how/what/where" process queries
+            r"\bhow to\b", r"\bhow do i\b", r"\bwhere do i\b",
+            r"\bprocess\b", r"\bprocedure\b",
 
+            # Access / portal / workflow issues
+            r"\breset password\b", r"\blogin issue\b", r"\baccess denied\b",
+            r"\bactivate account\b", r"\bcheck status\b",
+
+            # Form or declaration queries
+            r"\bsubmit form\b", r"\bform attached\b", r"\bsubmit declaration\b",
+
+            # E&C-specific obligations
+            r"\bg&e\b", r"\bgift(s?) & entertainment\b",
+            r"\bconflict of interest\b", r"\bcoi\b",
+            r"\btraining deadline\b", r"\bmandatory training\b",
+            r"\bipt submission\b", r"\bannual declaration\b",
+        ]
+    },
+
+    "medium_confidence": {
+        "weight": 1,
+        "patterns": [
+            # Generic help-seeking
+            r"\bquestion\b", r"\bclarification\b", r"\bhelp\b",
+            r"\bsupport\b", r"\binquiry\b", r"\bissue\b",
+
+            # Policy & procedural references
+            r"\bpolicy\b", r"\bupdate procedure\b", r"\bworkflow\b",
+            r"\bcompliance\b",
+
+            # E&C review processes
+            r"\brequest for check\b", r"\bdue diligence\b",
+            r"\bscreening\b", r"\bsanctions\b",
+        ]
+    },
+
+    # Signals that the user needs real judgement — borderline auto
+    "borderline_human_indicators": {
+        "weight": -1,
+        "patterns": [
+            r"\bplease advise\b", r"\bneed approval\b",
+            r"\brequest approval\b", r"\bconfirm\b",
+
+            # E&C escalations
+            r"\bexception\b", r"\bescalation\b", r"\bwaiver\b",
+            r"\bcase assessment\b"
+        ]
+    },
+
+    # Very high risk or sensitive items → must be human-handled
+    "human_required": {
+        "weight": -3,
+        "patterns": [
+            r"\blegal\b", r"\bcomplaint\b", r"\bconfidential\b",
+            r"\bresignation\b",
+
+            # E&C critical topics
+            r"\bbribery\b", r"\bcorruption\b",
+            r"\bdisciplinary\b", r"\bmisconduct\b",
+            r"\bretaliation\b", r"\bwhistleblow(ing)?\b"
+        ]
+    }
+}
 
 def compute_score(subject: str, body: str) -> int:
     """Compute chatbot addressability score."""
