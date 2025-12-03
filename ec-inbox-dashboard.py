@@ -80,28 +80,28 @@ def fallback_process(df):
     return df
 
 # ------------------- UPLOAD OR LOAD FIXED FILE -------------------
-use_default_button = st.checkbox("Load dashboard (Dataset last update: 2025-12-02)", value=False)
-
+# --- AUTO-LOAD DEFAULT DASHBOARD DATASET ---
+DEFAULT_PATH = "ECInbox_Analysis_20251202.xlsx"
 df = None
-if use_default_button:
-    # try to load a default fixed path; adjust path as needed
-    DEFAULT_PATH = "ECInbox_Analysis_20251202.xlsx"
-    try:
-        if engine is not None:
-            try:
-                df = engine.run_full_pipeline(DEFAULT_PATH)
-            except Exception:
-                df = pd.read_excel(DEFAULT_PATH)
-                df = ensure_cols(df)
-                df = fallback_process(df)
-        else:
+
+try:
+    if engine is not None:
+        try:
+            df = engine.run_full_pipeline(DEFAULT_PATH)
+        except Exception:
             df = pd.read_excel(DEFAULT_PATH)
             df = ensure_cols(df)
             df = fallback_process(df)
-        st.success(f"Loaded dataset: {DEFAULT_PATH}")
-    except FileNotFoundError:
-        st.error(f"Default dataset not found at {DEFAULT_PATH}. Upload a file or change the path.")
-        st.stop()
+    else:
+        df = pd.read_excel(DEFAULT_PATH)
+        df = ensure_cols(df)
+        df = fallback_process(df)
+
+    st.success(f"Loaded dataset automatically: {DEFAULT_PATH}")
+
+except FileNotFoundError:
+    st.error(f"Default dataset not found at {DEFAULT_PATH}. Please upload a file or update the path.")
+    st.stop()
 
 # ------------------- VALIDATE SCHEMA AFTER PROCESSING -------------------
 # Ensure minimal columns present (dashboard expects these)
