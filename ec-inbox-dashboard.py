@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 import io
 from inbox_analyser import preprocess, load_data, clean_datetime, clean_text_basic, clean_text_chatbot
 import sys
-# import gemini
+import openai
 
 # ------------------- PAGE CONFIG -------------------
 st.set_page_config(page_title="E&C Inbox Dashboard", layout="wide")
@@ -305,13 +305,15 @@ st.download_button("📥 Download filtered & cleaned dataset (xlsx)", buffer, fi
 st.caption("Dashboard generated: " + datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
 
 # ------------------- AI INSIGHTS (GENERAL + ACTIONABLE) -------------------
-''' try:
-    import gemini
-    GEMINI_AVAILABLE = True
-except ModuleNotFoundError:
-    GEMINI_AVAILABLE = False
-    st.warning("Gemini module not found — AI insights will be mocked.")
 
+import streamlit as st # Assuming 'st' is Streamlit as used in the original code
+
+try:
+    import openai
+    OPENAI_AVAILABLE = True
+except ModuleNotFoundError:
+    OPENAI_AVAILABLE = False
+    st.warning("OpenAI module not found — AI insights will be mocked.")
 
 
 def generate_ai_insights_batch(subjects, bodies):
@@ -319,13 +321,20 @@ def generate_ai_insights_batch(subjects, bodies):
     Generate AI insights for a batch of emails.
     Returns one summary/insights/risk level that captures trends and actionable points.
     """
+    # 📝 Prepare the text input
     text = "\n".join([f"Subject: {s}\nBody: {b}" for s, b in zip(subjects, bodies)])
     if not text.strip():
         return {"summary": "", "insights": "", "risk": ""}
 
-    if GEMINI_AVAILABLE:
+    if OPENAI_AVAILABLE:
         try:
-            gemini.api_key = st.secrets["GEMINI_API_KEY"]
+            # 🔑 Set the OpenAI API Key from Streamlit Secrets
+            # Note: The 'openai' library uses the client model now.
+            client = openai.OpenAI(
+                api_key=st.secrets["OPENAI_API_KEY"] # Ensure this secret is set
+            )
+            
+            # 📜 Define the prompt for the model
             prompt = f"""
             You are an Ethics & Compliance assistant.
             Summarize the following emails to provide a high-level view, highlighting:
@@ -335,20 +344,25 @@ def generate_ai_insights_batch(subjects, bodies):
 
             Emails content:
             {text}
+            
+            Please structure your response clearly, labeling sections with 'Summary:', 'Insights:', and 'Risk:' to facilitate programmatic parsing.
             """
 
-            response = gemini.chat.completions.create(
-                model="gpt-4o",
+            # 🚀 Call the OpenAI API
+            response = client.chat.completions.create(
+                model="gpt-4o",  # Using a capable OpenAI model
                 messages=[
-                    {"role": "system", "content": "You are a compliance expert."},
+                    {"role": "system", "content": "You are a compliance expert. Provide a structured response with 'Summary:', 'Insights:', and 'Risk:' sections."},
                     {"role": "user", "content": prompt}
                 ],
                 temperature=0.3
             )
 
-            output = response.choices[0].message["content"]
+            # 🔍 Extract the content
+            output = response.choices[0].message.content
 
-            # Simple heuristic parsing
+            # ⚙️ Simple heuristic parsing
+            # Look for the labels "Summary:", "Insights:", and "Risk:"
             summary = output.split("Summary:")[-1].split("Insights:")[0].strip() if "Summary:" in output else ""
             insights = output.split("Insights:")[-1].split("Risk:")[0].strip() if "Insights:" in output else output
             risk = output.split("Risk:")[-1].strip() if "Risk:" in output else ""
@@ -356,10 +370,11 @@ def generate_ai_insights_batch(subjects, bodies):
             return {"summary": summary, "insights": insights, "risk": risk}
 
         except Exception as e:
+            # ⚠️ Handle API errors
             return {"summary": "Error fetching AI insights", "insights": str(e), "risk": ""}
 
     else:
-        # Fallback/mock
+        # 🤖 Fallback/mock when the library isn't available
         return {"summary": f"{len(subjects)} emails analyzed...", 
                 "insights": "AI insights unavailable.", 
                 "risk": "Unknown"}
@@ -374,7 +389,7 @@ ai_result = generate_ai_insights_batch(subjects, bodies)
 
 st.markdown(f"**Summary:** {ai_result['summary']}")
 st.markdown(f"**Insights & Recommendations:** {ai_result['insights']}")
-st.markdown(f"**Overall Risk Level:** {ai_result['risk']}")'''
+st.markdown(f"**Overall Risk Level:** {ai_result['risk']}")
 
 
 
