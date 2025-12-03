@@ -9,9 +9,11 @@ from wordcloud import WordCloud
 import matplotlib.pyplot as plt
 import io
 from inbox_analyser import preprocess, load_data, clean_datetime, clean_text_basic, clean_text_chatbot
+import subprocess
+import json
 import sys
-import requests
 import ollama
+import requests
 
 # ------------------- PAGE CONFIG -------------------
 st.set_page_config(page_title="E&C Inbox Dashboard", layout="wide")
@@ -307,9 +309,6 @@ st.caption("Dashboard generated: " + datetime.now().strftime("%Y-%m-%d %H:%M:%S"
 
 
 # ------------------- AI INSIGHTS INTEGRATION -------------------
-
-import subprocess
-import json
 
 def generate_ai_insights_batch(subjects, bodies):
     """

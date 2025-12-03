@@ -20,3 +20,5 @@ streamlit
 wordcloud
 ollama
 ollama-python
+subprocess
+json5
