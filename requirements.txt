@@ -18,4 +18,4 @@ uvicorn
 openpyxl
 streamlit
 wordcloud
-subprocess
+
