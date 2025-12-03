@@ -222,11 +222,6 @@ with tabs[2]:
         fig_bubble = px.scatter(bubble_df, x="Total", y="Automation %", size="Total", color="Category", hover_name="Category", title="Automation Potential vs Volume", color_discrete_sequence=px.colors.qualitative.Set2)
         st.plotly_chart(fig_bubble, use_container_width=True)
 
-        # Sample subjects
-        st.markdown("#### Sample Emails Suitable for Chatbot Automation")
-        for subj in chatbot_df["Subject"].dropna().head(10):
-            st.write(f"- {subj}")
-
 # Text Insights tab
 with tabs[3]:
     st.markdown("### Top Keywords & Phrases")
