@@ -251,21 +251,36 @@ with tabs[3]:
 
 # Strategic Insights tab
 with tabs[4]:
-    st.markdown("### Strategic Recommendations & Insights")
-    top_cat = cat_counts.iloc[0]['Category'] if not cat_counts.empty else "N/A"
-    peak_month = monthly.loc[monthly['Count'].idxmax()]['Month'] if len(monthly) else "N/A"
-    st.markdown(f"""
-**Top Category:** `{top_cat}`  
-**Peak Month:** `{peak_month}`  
+    
+    
+    st.markdown("### 📌 Strategic Recommendations & Insights")
 
-✅ **Actionable Insights:**  
-- Focus on high-volume categories for automation opportunities.  
-- Leverage peak workload days/hours for staffing planning.  
-- Identify compliance-sensitive emails for risk mitigation.  
-- Use top keywords, bigrams, and trigrams to design chatbot intents.  
-- Monitor sub-categories with low automation % but high volume.  
-- Forecast next quarter volumes for resource planning.
-""")
+    # Extract top category, peak month, and confidence scores
+    top_cat = cat_counts.iloc[0]['Category'] if not cat_counts.empty else "N/A"
+    top_conf = cat_counts.iloc[0]['Confidence'] if 'Confidence' in cat_counts.columns and not cat_counts.empty else 0.0
+    peak_month = monthly.loc[monthly['Count'].idxmax()]['Month'] if len(monthly) else "N/A"
+
+    # Compute chatbot confidence insights
+    chatbot_yes = df[df['Chatbot_Addressable'] == 'Yes']
+    avg_chatbot_conf = chatbot_yes['Chatbot_Confidence'].mean() if not chatbot_yes.empty else 0.0
+
+    st.markdown(f"""
+    **Top Category:** `{top_cat}`  
+    **Category Confidence:** `{top_conf:.2f}`  
+    **Peak Month:** `{peak_month}`  
+    **Avg. Chatbot Confidence (Addressable):** `{avg_chatbot_conf:.2f}`  
+
+    ✅ **Actionable Insights:**  
+    - **Prioritise Automation:** Target high-volume category `{top_cat}` (Confidence: `{top_conf:.2f}`) for chatbot integration and workflow automation.  
+    - **Risk Mitigation:** Flag compliance-sensitive emails for early review to reduce regulatory exposure.  
+    - **Focus on Gaps:** Identify sub-categories with **high volume but low automation potential** for manual intervention strategies.  
+    - **Predictive Planning:** Leverage historical trends to forecast next quarter volumes and adjust capacity proactively.  
+    - **Anomaly Detection:** Monitor sudden spikes in sensitive categories (e.g., Data Protection, COI) for potential incidents.  
+    - **Language Optimisation:** Detect multilingual patterns in emails to enhance chatbot NLP capabilities.  
+    - **Training Needs:** High occurrence of compliance-related queries suggests reinforcing mandatory training programs.  
+    """)
+
+
 
 st.markdown("---")
 st.header("Export & Save")
