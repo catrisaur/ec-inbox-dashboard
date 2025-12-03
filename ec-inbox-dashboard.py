@@ -12,7 +12,6 @@ from inbox_analyser import preprocess, load_data, clean_datetime, clean_text_bas
 import subprocess
 import json
 import sys
-import ollama
 import requests
 
 # ------------------- PAGE CONFIG -------------------
